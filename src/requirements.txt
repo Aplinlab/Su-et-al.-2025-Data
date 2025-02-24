@@ -1,0 +1,6 @@
+adi-reader
+jupyter
+matplotlib
+numpy
+pandas
+scipy
