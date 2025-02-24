@@ -117,3 +117,4 @@ class Recording:
         self.mech_triggers = mech_triggers
         self.elec_triggers = elec_triggers
         self.markers = markers
+        

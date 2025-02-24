@@ -83,3 +83,4 @@ class TriggersTrial:
                 'electrical': triggers_elec_rcvr
             }
         }
+        
