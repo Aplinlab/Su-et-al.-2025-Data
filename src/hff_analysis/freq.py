@@ -25,8 +25,7 @@ p = re.compile(constants.SWEEP_REGEX)
 def freqsweep_spikes(
         recording: classes.recordings.Recording,
         epoch_timing_ms: tuple[int | float, int | float],
-        threshold_uV: int | float,
-        spike_criteria: dict[str, classes.recordings.SpikeCriteria]
+        threshold_uV: int | float
 ) -> tuple[list[classes.spikes.SpikesTrial], list[classes.epochs.EpochsTrial]]:
     """Returns information about spikes in a frequency sweep.
     
@@ -67,6 +66,8 @@ def freqsweep_spikes(
             assert m.group('testvar')=='frequency'
         # Print error message and skip marker if no match is found:
         except AttributeError:
+            # AttributeError is raised if m is None (i.e. if regex
+            # pattern didn't match)
             print(
                 "Comment does not match the expected format for frequency "
                 f"sweeps ({marker.comment})."
@@ -118,7 +119,6 @@ def freqsweep_spikes(
                     epoch_timing_ms,
                     recording.tick_dt,
                     threshold_uV,
-                    spike_criteria,
                     phase,
                     stim_type
                 )
@@ -207,6 +207,9 @@ def simple_spikerate_df(json_spike_filenames: list[str]) -> pd.DataFrame:
         save_file = constants.SPIKES_JSON_FOLDER + spike_filename
         # Read JSON file and convert to list of `SpikesTrial` objects:
         spikes_dict = json.load(open(save_file))
+        # Check that version is correct:
+        # TODO Handle incorrect version numbers
+        assert spikes_dict['version'] == constants.VERSION
         spikes = [classes.spikes.SpikesTrial.from_dict(dictionary)
                   for dictionary in spikes_dict['spikes']]
         for trial in spikes:

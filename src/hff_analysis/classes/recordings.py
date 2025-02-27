@@ -33,12 +33,14 @@ class FileReadSettings:
     """
     def __init__(
             self,
+            version: str,
             filename: str,
             recording_segment: int,
             epoch_timing_ms: tuple[int | float, int | float],
             threshold_uV: int | float,
             spike_criteria: dict[str, SpikeCriteria]
     ):
+        self.version = version
         self.filename = filename
         self.recording_segment = recording_segment
         self.epoch_timing_ms = epoch_timing_ms

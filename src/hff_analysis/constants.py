@@ -4,36 +4,112 @@ This module contains all constants for this Python library, and should
 not include anything else.
 """
 
+VERSION = '0.1.0'
+
 
 #*USER-DEFINED CONSTANTS
 # These constants may be tweaked as required.
 
-# File paths
-RAW_DATA_FOLDER = '.\\labchart_raw_data\\'
-EPOCHS_JSON_FOLDER = '.\\outputs\\JSON\\epochs\\'
-FILEREADSETTINGS_JSON_FOLDER = '.\\outputs\\JSON\\file_read_settings\\'
-SPIKES_JSON_FOLDER = '.\\outputs\\JSON\\spikes\\'
-PLOTS_FOLDER = '.\\outputs\\plots\\'
-CLUSTER_PLOTS_FOLDER = '.\\outputs\\plots\\clusters\\'
+# Filenames and paths
+RAW_DATA_PATH = '.\\labchart_raw_data\\'
+JSON_OUTPUTS = {
+    'rootpath': '.\\outputs\\JSON\\',
+    'epochs': {
+        'path': 'epochs\\',
+        'suffix': 'EPOCHS'
+    },
+    'frs': {
+        'path': 'file_read_settings\\',
+        'suffix': 'FILEREADSETTINGS'
+    },
+    'spikes': {
+        'path': 'spikes\\',
+        'suffix': 'SPIKES'
+    }
+}
+PLOT_OUTPUTS = {
+    'rootpath': '.\\outputs\\plots\\',
+    'clusters': 'clusters\\'
+}
 
 # The amount of time to trim from the recording after applying a notch
 # filter, in seconds. The specified duration is trimmed from both
 # the beginning and end of the recording.
 NOTCHFILT_ARTEFACT_WIDTH_S = 3
 
-# Colours to use for plotting.
+# Plotting variables
 PLOT_COLOURS = {
     'peaks': '#e59e00ff',
-    'conditioning_traces': '#56b4e920',
-    'interleaved_traces': '#cc79a720',
-    'recovery_traces': '#009e7320'
+    'conditioning_traces': '#56b4e950',
+    'interleaved_traces': '#cc79a750',
+    'recovery_traces': '#009e7350'
 }
-
 EPOCH_LINE_WIDTH = 0.1
 SCATTERPLOT_POINT_SIZE = 1
-
 SIMPLE_PLOT_LEGEND_LOC = 'upper right'
 SIMPLE_PLOT_LEGEND_SIZE = 8
+
+# Metadata describing animals and units
+METADATA = {
+    'HFF02': {
+        'sex': 'M',
+        1: 'FA',
+        2: 'SA'
+    },
+    'HFF03': {
+        'sex': 'F',
+        3: 'FA'
+    },
+    'HFF04': {
+        'sex': 'M',
+        2: None
+    },
+    'HFF05': {
+        'sex': 'M',
+        1: None,
+        2: 'Ad'
+    },
+    'HFF08': {
+        'sex': 'F',
+        1: 'FA'
+    },
+    'HFF10': {
+        'sex': 'F',
+        1: 'FA'
+    },
+    'HFF11': {
+        'sex': 'F',
+        1: 'FA',
+        2: 'FA'
+    },
+    'HFF12': {
+        'sex': 'F',
+        1: 'Ad'
+    },
+    'HFF13': {
+        'sex': 'F',
+        1: 'SA',
+        2: 'FA'
+    },
+    'HFF15': {
+        'sex': 'M',
+        1: None
+    },
+    'HFF16': {
+        'sex': 'M',
+        1: 'SA'
+    },
+    'HFF19': {
+        'sex': 'M',
+        2: 'SA',
+        3: 'FA',
+        5: 'Ad'
+    },
+    'HFF20': {
+        'sex': 'F',
+        1: 'SA'
+    }
+}
 
 
 ### BACKEND CONSTANTS ###

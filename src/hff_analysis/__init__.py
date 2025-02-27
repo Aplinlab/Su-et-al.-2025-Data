@@ -4,20 +4,11 @@
 # TODO Classify plots by unit type (FA/SA)
 # TODO Improve error handling
 
+from .constants import VERSION
 from .base import (
     plot_spikes,
     read_adicht,
     save_to_json
-)
-from .classes.recordings import (
-    SpikeCriteria
-)
-from .constants import (
-    EPOCHS_JSON_FOLDER,
-    FILEREADSETTINGS_JSON_FOLDER,
-    SPIKES_JSON_FOLDER,
-    PLOTS_FOLDER,
-    CLUSTER_PLOTS_FOLDER
 )
 from .freq import (
     freqsweep_spikes,
@@ -30,15 +21,10 @@ from .freq import (
 # from . import long
 
 __all__ = [
+    'VERSION',
     'plot_spikes',
     'read_adicht',
     'save_to_json',
-    'SpikeCriteria',
-    'EPOCHS_JSON_FOLDER',
-    'FILEREADSETTINGS_JSON_FOLDER',
-    'SPIKES_JSON_FOLDER',
-    'PLOTS_FOLDER',
-    'CLUSTER_PLOTS_FOLDER',
     'freqsweep_spikes',
     'simple_spikerate_df',
     'simple_spikerate_plotdf',

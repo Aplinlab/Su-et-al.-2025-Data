@@ -14,6 +14,12 @@ import re
 from . import classes
 from . import constants
 
+# TODO 27/02
+# Separate plot saving into different functions
+# Modify functions to use new filename/path constants
+# Add better version control (e.g. ignore parts which do not affect
+#   compatibility - e.g. patch version)
+
 
 # Regex pattern for parsing filenames:
 # It is compiled here once, rather than within a function, to reduce
@@ -358,7 +364,6 @@ def detect_spikes(
         epoch_timing_ms: tuple[int | float, int | float],
         tick_dt: float,
         threshold: int | float,
-        spike_criteria: dict[str, classes.recordings.SpikeCriteria],
         phase: str,
         stim_type: str
 ) -> tuple[
@@ -411,34 +416,94 @@ def detect_spikes(
         # add to `spikes` list:
         peaks, properties = signal.find_peaks(trace, threshold)
         for i, peak in enumerate(peaks):
-            # Check if all criteria match, skipping if criteria is None
-            criteria = spike_criteria[stim_type]
-            latency_ms = peak*tick_dt_ms + epoch_timing_ms[0]
-            size_uV = properties['peak_heights'][i]
-            latency_min = (
-                latency_ms >= criteria.latency_min_ms if
-                criteria.latency_min_ms is not None else True
-            )
-            latency_max = (
-                latency_ms < criteria.latency_max_ms if
-                criteria.latency_max_ms is not None else True
-            )
-            size_min = (
-                size_uV >= criteria.size_min_uV if
-                criteria.size_min_uV is not None else True
-            )
-            size_max = (
-                size_uV < criteria.size_max_uV if
-                criteria.size_max_uV is not None else True
-            )
-            if latency_min and latency_max and size_min and size_max:
-                spikes.append(classes.spikes.Spike(
-                    epoch_id,
-                    latency_ms,
-                    size_uV
-                ))
+            spikes.append(classes.spikes.Spike(
+                epoch_id,
+                peak*tick_dt_ms + epoch_timing_ms[0],
+                properties['peak_heights'][i]
+            ))
     # Return populated output lists:
     return spikes, data_epochs
+
+
+def filter_spikes(
+        trials: list[classes.spikes.SpikesTrial],
+        criteria: dict[str, dict[str, int | float | None]]
+) -> list[classes.spikes.SpikesTrial]:
+    try:
+        spike_criteria_mech = classes.recordings.SpikeCriteria(
+            **criteria['mechanical']
+        )
+        spike_criteria_elec = classes.recordings.SpikeCriteria(
+            **criteria['electrical']
+        )
+    # TODO Write error messages for both exceptions:
+    except KeyError:
+        # `criteria` missing `'mechanical'` and/or `'electrical'` key(s)
+        raise
+    except TypeError:
+        # `'mechanical'` and/or `'electrical'` don't match SpikeCriteria
+        raise
+    filtered_trials = []
+    for trial in trials:
+        filtered_phases = []
+        for phase in [trial.conditioning, trial.interleaved, trial.recovery]:
+            filtered_spikes_mech = []
+            filtered_spikes_elec = []
+            for spike in phase.mechanical:
+                latency_min = (
+                    spike.time_ms >= spike_criteria_mech.latency_min_ms if
+                    spike_criteria_mech.latency_min_ms is not None else True
+                )
+                latency_max = (
+                    spike.time_ms < spike_criteria_mech.latency_max_ms if
+                    spike_criteria_mech.latency_max_ms is not None else True
+                )
+                size_min = (
+                    spike.size_uV >= spike_criteria_mech.size_min_uV if
+                    spike_criteria_mech.size_min_uV is not None else True
+                )
+                size_max = (
+                    spike.size_uV < spike_criteria_mech.size_max_uV if
+                    spike_criteria_mech.size_max_uV is not None else True
+                )
+                if latency_min and latency_max and size_min and size_max:
+                    filtered_spikes_mech.append(spike)
+            for spike in phase.electrical:
+                latency_min = (
+                    spike.time_ms >= spike_criteria_elec.latency_min_ms if
+                    spike_criteria_elec.latency_min_ms is not None else True
+                )
+                latency_max = (
+                    spike.time_ms < spike_criteria_elec.latency_max_ms if
+                    spike_criteria_elec.latency_max_ms is not None else True
+                )
+                size_min = (
+                    spike.size_uV >= spike_criteria_elec.size_min_uV if
+                    spike_criteria_elec.size_min_uV is not None else True
+                )
+                size_max = (
+                    spike.size_uV < spike_criteria_elec.size_max_uV if
+                    spike_criteria_elec.size_max_uV is not None else True
+                )
+                if latency_min and latency_max and size_min and size_max:
+                    filtered_spikes_elec.append(spike)
+            filtered_phases.append(classes.spikes.SpikesPhase(
+                phase.epochs_mech,
+                phase.epochs_elec,
+                filtered_spikes_mech,
+                filtered_spikes_elec
+            ))
+        filtered_trials.append(classes.spikes.SpikesTrial(
+            trial.animal_id,
+            trial.position,
+            trial.test,
+            trial.test_stim,
+            trial.test_freqency,
+            trial.test_amplitude,
+            *filtered_phases
+        ))
+    return filtered_trials
+    
 
 
 def plot_spikes(
@@ -458,11 +523,12 @@ def plot_spikes(
     * Raises `AssertionError` if `save_figures` set to `True` but one or
     both of `filename` and `recording_segment` are not provided.
     """
+    # `figure(0)` displays mechanical stimulation epochs
+    # `figure(1)` displays electrical stimulation epochs
+    # `zorder` has been set so that points appear above traces
+
+    # Plot detected peaks as scatterplots:
     for spikes_trial in spikes:
-        # Plot detected peaks as scatterplots:
-        # `figure(0)` displays mechanical stimulation epochs
-        # `figure(1)` displays electrical stimulation epochs
-        # zorder has been set so that 
         plt.figure(0)
         plt.scatter(
             [x.time_ms for x in spikes_trial.conditioning.mechanical],
@@ -507,35 +573,41 @@ def plot_spikes(
             constants.PLOT_COLOURS['peaks'],
             zorder=1
         )
-        # Plot traces by epoch:
-        for epochs_trial in epochs:
-            for epoch in epochs_trial.epochs:
-                # If an epoch has an invalid stimulus type, try-except block
-                # prints an error message and skips it:
-                try:
-                    plot_id = constants.STIMULATION_TYPES.index(epoch.stimulus)
-                except ValueError:
-                    print(
-                        "Epoch stimulus type not recognised.\n"
-                        f"    Animal ID: {spikes_trial.animal_id}\n"
-                        f"    Position: {spikes_trial.position}\n"
-                        f"    Test: {spikes_trial.test}\n"
-                        f"    Test Stimulus: {spikes_trial.test_stim}\n"
-                        f"    Test Frequency: {spikes_trial.test_freqency} Hz"
-                        "\n"
-                        f"    Test Amplitude: {spikes_trial.test_amplitude} μA"
-                    )
-                    continue
-                # Plot figure:
-                plt.figure(plot_id)
-                plt.plot(
-                    [i * epoch.tick_dt_ms + epoch.start_ms
-                    for i, _x in enumerate(epoch.trace)],
-                    epoch.trace,
-                    c=constants.PLOT_COLOURS[f'{epoch.phase}_traces'],
-                    linewidth=constants.EPOCH_LINE_WIDTH,
-                    zorder=0
+    # Plot traces by epoch:
+    for epochs_trial in epochs:
+        for epoch in epochs_trial.epochs:
+            # If an epoch has an invalid stimulus type, try-except block
+            # prints an error message and skips it:
+            try:
+                plot_id = constants.STIMULATION_TYPES.index(epoch.stimulus)
+            except ValueError:
+                print(
+                    "Epoch stimulus type not recognised.\n"
+                    f"    Animal ID: {spikes_trial.animal_id}\n"
+                    f"    Position: {spikes_trial.position}\n"
+                    f"    Test: {spikes_trial.test}\n"
+                    f"    Test Stimulus: {spikes_trial.test_stim}\n"
+                    f"    Test Frequency: {spikes_trial.test_freqency} Hz"
+                    "\n"
+                    f"    Test Amplitude: {spikes_trial.test_amplitude} μA"
                 )
+                continue
+            # Plot figure:
+            plt.figure(plot_id)
+            plt.plot(
+                [i * epoch.tick_dt_ms + epoch.start_ms
+                for i, _x in enumerate(epoch.trace)],
+                epoch.trace,
+                c=constants.PLOT_COLOURS[f'{epoch.phase}_traces'],
+                linewidth=constants.EPOCH_LINE_WIDTH,
+                zorder=0
+                )
+    plt.figure(0)
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Signal voltage (μV)")
+    plt.figure(1)
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Signal voltage (μV)")
     # Save figures if specified:
     if save_figures:
         assert filename is not None and recording_segment is not None, (
@@ -624,7 +696,10 @@ def save_to_json(
     not JSON serialisable after applying `convert_to_json_dict()`.
     """
     # Construct target filename for JSON file:
-    filename = f'{input_filename}-[{recording_index}]-{output_suffix}.json'
+    filename = (
+        f'{input_filename}-[{recording_index}]-{output_suffix}-'
+        f'{constants.VERSION}.json'
+    )
     # Construct dict to save as JSON:
     output_dict = {}
     for key, value in kwargs.items():
