@@ -512,13 +512,13 @@ def save_plot(
         plt.savefig(f'{target_path}{target_name}.pdf')
     
 
-def plot_spikes(
+def plot_clusters(
     spikes: list[classes.spikes.SpikesTrial],
     epochs: list[classes.epochs.EpochsTrial],
+    repetition: int,
+    recording_segment: int,
     save_figures: bool = False,
-    filename: str | None = None,
-    recording_segment: int | None = None,
-    repetition: int | None = None
+    filename: str | None = None
 ) -> None:
     """Plots peaks and traces by epoch to visualise spike detection.
     
@@ -535,51 +535,35 @@ def plot_spikes(
     # `zorder` has been set so that points appear above traces
 
     # Plot detected peaks as scatterplots:
+    plt.figure(figsize=constants.FIGSIZE)
+    max_voltage = 0
     for spikes_trial in spikes:
-        plt.figure(0)
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.conditioning.mechanical],
-            [x.size_uV for x in spikes_trial.conditioning.mechanical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.interleaved.mechanical],
-            [x.size_uV for x in spikes_trial.interleaved.mechanical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.recovery.mechanical],
-            [x.size_uV for x in spikes_trial.recovery.mechanical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
-        plt.figure(1)
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.conditioning.electrical],
-            [x.size_uV for x in spikes_trial.conditioning.electrical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.interleaved.electrical],
-            [x.size_uV for x in spikes_trial.interleaved.electrical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
-        plt.scatter(
-            [x.time_ms for x in spikes_trial.recovery.electrical],
-            [x.size_uV for x in spikes_trial.recovery.electrical],
-            constants.CLUSTER_POINT_SIZE,
-            constants.CLUSTER_COLOURS['peaks'],
-            zorder=1
-        )
+        phase_stims_dict = {
+            1: [
+                spikes_trial.conditioning.mechanical,
+                spikes_trial.interleaved.mechanical,
+                spikes_trial.recovery.mechanical
+            ],
+            2: [
+                spikes_trial.conditioning.electrical,
+                spikes_trial.interleaved.electrical,
+                spikes_trial.recovery.electrical
+            ]
+        }
+        for (plot_id, phase_stims) in phase_stims_dict.items():
+            plt.subplot(2, 1, plot_id)
+            for phase_stim in phase_stims:
+                plt.scatter(
+                    [x.time_ms for x in phase_stim],
+                    [x.size_uV for x in phase_stim],
+                    constants.CLUSTER_POINT_SIZE,
+                    constants.CLUSTER_COLOURS['peaks'],
+                    zorder=1
+                )
+                try:
+                    max_voltage = max(max_voltage, max(x.size_uV for x in phase_stim))
+                except ValueError:
+                    pass
     # Plot traces by epoch:
     for epochs_trial in epochs:
         for epoch in epochs_trial.epochs:
@@ -600,7 +584,7 @@ def plot_spikes(
                 )
                 continue
             # Plot figure:
-            plt.figure(plot_id)
+            plt.subplot(2, 1, plot_id+1)
             plt.plot(
                 [i * epoch.tick_dt_ms + epoch.start_ms
                 for i, _x in enumerate(epoch.trace)],
@@ -610,34 +594,33 @@ def plot_spikes(
                 zorder=0
                 )
     plot_title = (
-        f'{spikes_trial.animal_id}-{spikes_trial.position} ('
+        f'{spikes_trial.animal_id}-{spikes_trial.position} '
+        f'[{repetition}-{recording_segment}] ('
         f'{constants.METADATA[spikes_trial.animal_id.upper()][spikes_trial.position]})'
     )
-    for plot_id in range(0,2):
-        plt.figure(plot_id)
-        plt.title(plot_title)
+    plt.suptitle(plot_title)
+    for plot_id in range(1,3):
+        plt.subplot(2, 1, plot_id)
         plt.xlabel("Time (ms)")
         plt.ylabel("Signal voltage (μV)")
+        ax = plt.gca()
+        ax.set_ylim([
+            constants.CLUSTER_YMIN,
+            max_voltage*constants.CLUSTER_YMAX_SCALE
+        ])
+    plt.subplot(2, 1, 1)
+    plt.title("Mechanical")
+    plt.subplot(2, 1, 2)
+    plt.title("Electrical")
     # Save figures if specified:
     if save_figures:
-        assert (
-            filename is not None and
-            recording_segment is not None and
-            repetition is not None
-        ), (
-            "When saving figures, `filename` and `recording_segment` "
-            "arguments must both be provided."
+        assert filename is not None, (
+            "When saving figures, `filename`, `recording_segment`, and "
+            "`repetition` must all be provided."
         )
-        
-        plt.figure(0)
         save_plot(
             'clusters',
-            f'{filename}-[{repetition}-{recording_segment}]-mechanical'
-        )
-        plt.figure(1)
-        save_plot(
-            'clusters',
-            f'{filename}-[{repetition}-{recording_segment}]-electrical'
+            f'{filename}-[{repetition}-{recording_segment}]'
         )
     return
 
@@ -681,8 +664,8 @@ def convert_to_json_dict(obj) -> any:
 
 def save_to_json(
         input_filename: str,
-        recording_index: int,
         repetition: int,
+        recording_index: int,
         save_type: str,
         force_overwrite: bool = False,
         **kwargs

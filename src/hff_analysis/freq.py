@@ -400,7 +400,7 @@ def plot_raster(
         row_criteria: str,
         save_figure: bool = False
 ) -> None:
-    plt.subplot(plot_count, 1, plot_id)
+    plt.subplot(plot_count, 1, plot_id+1)
     row_ids = spikes_df[row_criteria].unique()
     y_mech = 0
     y_elec = len(row_ids) / 2

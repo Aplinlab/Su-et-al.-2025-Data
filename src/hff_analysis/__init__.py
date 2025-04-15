@@ -5,9 +5,13 @@
 # TODO Add animal ages to METADATA
 # TODO Improve error handling
 
-from .constants import VERSION
+from .constants import (
+    VERSION,
+    FIGSIZE
+)
 from .base import (
-    plot_spikes,
+    filter_spikes,
+    plot_clusters,
     read_adicht,
     save_to_json,
     spikes_table
@@ -25,7 +29,9 @@ from .freq import (
 
 __all__ = [
     'VERSION',
-    'plot_spikes',
+    'FIGSIZE',
+    'filter_spikes',
+    'plot_clusters',
     'read_adicht',
     'save_to_json',
     'spikes_table',

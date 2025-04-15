@@ -4,7 +4,7 @@ This module contains all constants for this Python library, and should
 not include anything else.
 """
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 
 #*USER-DEFINED CONSTANTS
@@ -40,14 +40,18 @@ PLOT_PATH = '.\\outputs\\images\\'
 NOTCHFILT_ARTEFACT_WIDTH_S = 3
 
 # Plotting variables
+FIGSIZE = (8, 12)
+
 CLUSTER_COLOURS = {
     'peaks': '#e59e00ff',
     'conditioning_traces': '#56b4e950',
     'interleaved_traces': '#cc79a750',
     'recovery_traces': '#009e7350'
 }
-CLUSTER_LINE_WIDTH = 0.1
-CLUSTER_POINT_SIZE = 1
+CLUSTER_LINE_WIDTH = 0.3
+CLUSTER_POINT_SIZE = 0.5
+CLUSTER_YMIN = -100
+CLUSTER_YMAX_SCALE = 1.2
 
 SIMPLE_PLOT_LEGEND_LOC = 'upper right'
 SIMPLE_PLOT_LEGEND_SIZE = 8
