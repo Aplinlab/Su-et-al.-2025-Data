@@ -27,7 +27,7 @@ class EpochsTrial:
             position: int,
             test: str,
             test_stim: str,
-            test_freqency: int | float,
+            test_frequency: int | float,
             test_amplitude: int | float,
             epochs: list[DataEpoch]
     ):
@@ -35,7 +35,7 @@ class EpochsTrial:
         self.position =  position
         self.test =  test
         self.test_stim =  test_stim
-        self.test_freqency =  test_freqency
+        self.test_frequency =  test_frequency
         self.test_amplitude =  test_amplitude
         self.epochs = epochs
 
@@ -46,7 +46,7 @@ class EpochsTrial:
             dictionary['position'],
             dictionary['test'],
             dictionary['test_stim'],
-            dictionary['test_freqency'],
+            dictionary['test_frequency'],
             dictionary['test_amplitude'],
             [DataEpoch(**list_item) for list_item in dictionary['epochs']]
         )

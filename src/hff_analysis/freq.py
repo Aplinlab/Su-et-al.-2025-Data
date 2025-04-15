@@ -1,9 +1,5 @@
 """Functions specific to the analysis of frequency sweeps."""
 
-# TODO Allow user to select which phases are plotted using
-# TODO `phase` argument (line 289)
-
-import json
 import matplotlib.pyplot as plt
 import pandas as pd
 import re
@@ -129,7 +125,7 @@ def freqsweep_spikes(
             'position': recording.position,
             'test': recording.test,
             'test_stim': triggers_by_phase.test_stim,
-            'test_freqency': triggers_by_phase.stim_value,
+            'test_frequency': triggers_by_phase.stim_value,
             'test_amplitude': constants.FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE
         }
         # Define `SpikesTrial` object:
@@ -179,7 +175,9 @@ def freqsweep_spikes(
 
 ################## *SPIKE- & FOLLOWING-RATE ANALYSIS* ##################
 
-def simple_spikerate_df(json_spike_filenames: list[str]) -> pd.DataFrame:
+def simple_spikerate_df(
+    spikes_df: pd.DataFrame
+) -> pd.DataFrame:
     """Calculates mean spike rate per stimulation from saved spike data.
     
     For each JSON file in `json_spike_filenames`, calculates mean spike
@@ -196,60 +194,107 @@ def simple_spikerate_df(json_spike_filenames: list[str]) -> pd.DataFrame:
     #!likely raise `ZeroDivisionError` which can be handled to skip that
     #!frequency. However, must ensure that missing values do not end up
     #!in the output DataFrame as `0`!
+    
+    test, *test_empty = spikes_df['Test'].unique()
+    try:
+        assert len(test_empty) == 0 and test == 'Frequency'
+    except AssertionError:
+        spikes_df = spikes_df.loc[spikes_df['Test'] == 'Frequency']
+
     # Define output DataFrame:
-    simple_frequency_table = base.typed_dataframe(
-        constants.SIMPLE_FREQUENCY_COLUMNS,
-        constants.SIMPLE_FREQUENCY_TYPES,
-        constants.SIMPLE_FREQUENCY_CATEGORIES
+    simple_spikerate_df = pd.DataFrame()
+    for trial_id in spikes_df['Trial ID'].unique():
+        test_spikes_df = spikes_df.loc[spikes_df['Trial ID'] == trial_id]
+
+        animal_id, *animal_empty = test_spikes_df['Animal ID'].unique()
+        sex, *sex_empty = test_spikes_df['Sex'].unique()
+        position, *position_empty = test_spikes_df['Position'].unique()
+        unit_id, *unit_id_empty = test_spikes_df['Unit ID'].unique()
+        unit_type, *unit_type_empty = test_spikes_df['Unit Type'].unique()
+        stimulus, *stimulus_empty = test_spikes_df['Test Stimulus'].unique()
+        frequency, *frequency_empty = test_spikes_df['Test Frequency'].unique()
+        amplitude, *amplitude_empty = test_spikes_df['Test Amplitude'].unique()
+        test_id, *test_id_empty = test_spikes_df['Test ID'].unique()
+        repetition, *repetition_empty = test_spikes_df['Repetition'].unique()
+        assert (
+            len(animal_empty) == 0 and
+            len(sex_empty) == 0 and
+            len(position_empty) == 0 and
+            len(unit_id_empty) == 0 and
+            len(unit_type_empty) == 0 and
+            len(stimulus_empty) == 0 and
+            len(frequency_empty) == 0 and
+            len(amplitude_empty) == 0 and
+            len(test_id_empty) == 0 and
+            len(repetition_empty) == 0
+        )
+        
+        simple_spikerates = {
+            'Conditioning': 0.0,
+            'Interleaved Mechanical': 0.0,
+            'Interleaved Electrical': 0.0,
+            'Recovery Mechanical': 0.0,
+            'Recovery Electrical': 0.0
+        }
+        for phase_id in test_spikes_df['Phase ID'].unique():
+            phase_spikes_df = test_spikes_df.loc[
+                spikes_df['Phase ID'] == phase_id
+            ]
+
+            epochs, *epochs_empty = phase_spikes_df['Total Epochs'].unique()
+            phase, *phase_empty = phase_spikes_df['Phase'].unique()
+            stim, *stim_empty = phase_spikes_df['Epoch Stimulus'].unique()
+            assert (
+                len(epochs_empty) == 0 and
+                len(phase_empty) == 0 and
+                len(stim_empty) == 0
+            )
+
+            if epochs > 0:
+                if phase == 'Conditioning':
+                    column = 'Conditioning'
+                else:
+                    column = f'{phase} {stim}'
+            else:
+                if phase == 'Conditioning':
+                    pass
+                else:
+                    raise AssertionError(f"Unexpected empty phase ({phase_id}).")
+            
+            simple_spikerates[column] = len(phase_spikes_df) / epochs
+
+        simple_spikerate_df = pd.concat([
+            simple_spikerate_df,
+            pd.DataFrame([[
+                animal_id,
+                sex,
+                position,
+                unit_id,
+                unit_type,
+                test,
+                stimulus,
+                frequency,
+                amplitude,
+                test_id,
+                repetition,
+                trial_id,
+                simple_spikerates['Conditioning'],
+                simple_spikerates['Interleaved Mechanical'],
+                simple_spikerates['Interleaved Electrical'],
+                simple_spikerates['Recovery Mechanical'],
+                simple_spikerates['Recovery Electrical']
+            ]], columns=constants.SIMPLE_SPIKERATE_COLUMNS)
+        ], ignore_index=True)
+    
+    return base.typed_dataframe(
+        simple_spikerate_df,
+        constants.SIMPLE_SPIKERATE_TYPES,
+        constants.SIMPLE_SPIKERATE_CATEGORIES
     )
-    for spike_filename in json_spike_filenames:
-        # Construct path from which JSON file is to be read:
-        save_file = constants.SPIKES_JSON_FOLDER + spike_filename
-        # Read JSON file and convert to list of `SpikesTrial` objects:
-        spikes_dict = json.load(open(save_file))
-        # Check that version is correct:
-        # TODO Handle incorrect version numbers
-        assert spikes_dict['version'] == constants.VERSION
-        spikes = [classes.spikes.SpikesTrial.from_dict(dictionary)
-                  for dictionary in spikes_dict['spikes']]
-        for trial in spikes:
-            # Calculate mean spike rate per trial in conditioning phase:
-            if trial.conditioning.epochs_mech:
-                cond_rate = (len(trial.conditioning.mechanical)/
-                             trial.conditioning.epochs_mech)
-            elif trial.conditioning.epochs_elec:
-                cond_rate = (len(trial.conditioning.electrical)/
-                             trial.conditioning.epochs_elec)
-            # Calculate mean spike rate per trial in other phases:
-            mech_itlv_rate = (len(trial.interleaved.mechanical)/
-                              trial.interleaved.epochs_mech)
-            elec_itlv_rate = (len(trial.interleaved.electrical)/
-                              trial.interleaved.epochs_elec)
-            mech_rcvr_rate = (len(trial.recovery.mechanical)/
-                              trial.recovery.epochs_mech)
-            elec_rcvr_rate = (len(trial.recovery.electrical)/
-                              trial.recovery.epochs_elec)
-            # Append results to output DataFrame:
-            simple_frequency_table = pd.concat([
-                simple_frequency_table,
-                pd.DataFrame([[
-                    trial.animal_id,
-                    trial.position,
-                    trial.test_freqency,
-                    trial.test_stim.capitalize(),
-                    cond_rate,
-                    mech_itlv_rate,
-                    elec_itlv_rate,
-                    mech_rcvr_rate,
-                    elec_rcvr_rate
-                ]], columns=constants.SIMPLE_FREQUENCY_COLUMNS)
-            ], ignore_index=True)
-    # Return output DataFrame:
-    return simple_frequency_table
 
 
 def simple_spikerate_plotdf(
-        simple_frequency_table: pd.DataFrame
+        simple_spikerate_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Returns a DataFrame for plotting simple spike rate analysis.
     
@@ -262,37 +307,47 @@ def simple_spikerate_plotdf(
     #!unit) is currently untested. Must ensure that whatever value ends
     #!up in the table can be differentiated from `0` and excluded from
     #!mean calculation!
+    
+    test, *test_empty = simple_spikerate_df['Test'].unique()
+    try:
+        assert len(test_empty) == 0 and test == 'Frequency'
+    except AssertionError:
+        simple_spikerate_df = simple_spikerate_df.loc[
+            simple_spikerate_df['Test'] == 'Frequency'
+        ]
+
     # Identify frequencies present in the analysis:
-    frequencies = simple_frequency_table[
-        'Conditioning Frequency (Hz)'
+    frequencies = simple_spikerate_df[
+        'Test Frequency'
     ].unique()
     # Define DataFrame to be plotted:
     simple_plot_df = pd.DataFrame(
             index=frequencies,
-            columns=constants.SIMPLE_PLOT_COLUMNS
-        ).astype(constants.SIMPLE_PLOT_TYPES)
-    
-    for stimulus in constants.SIMPLE_FREQUENCY_CATEGORIES[
-        'Conditioning Stimulus'
-    ]:
-        for frequency in frequencies:
-            # Filter analysis DataFrame to relevant rows:
-            filtered_df = simple_frequency_table.loc[
-                (simple_frequency_table['Conditioning Stimulus'] == stimulus) &
-                (simple_frequency_table['Conditioning Frequency (Hz)'] ==
-                 frequency)
-            ]
-            # Filter matching rows and calculate mean:
-            # Conditioning phase is handled first, separately.
+            columns=constants.SSR_PLOT_COLUMNS
+        ).astype(constants.SSR_PLOT_TYPES)
+
+    for test_id in simple_spikerate_df['Test ID'].unique():
+        # Filter analysis DataFrame to relevant rows:
+        filtered_df = simple_spikerate_df.loc[
+            (simple_spikerate_df['Test ID'] == test_id)
+        ]
+        stimulus, *stimulus_empty = filtered_df['Test Stimulus'].unique()
+        frequency, *frequency_empty = filtered_df['Test Frequency'].unique()
+        assert (
+            len(stimulus_empty) == 0 and
+            len(frequency_empty) == 0
+        )
+        # Filter matching rows and calculate mean:
+        # Conditioning phase is handled first, separately.
+        simple_plot_df.loc[
+            frequency,
+            f'SSR Conditioning - {stimulus}'
+        ] = statistics.mean(filtered_df['SSR Conditioning'])
+        for input_column in filtered_df.columns[-4:]:
             simple_plot_df.loc[
                 frequency,
-                f'FR Conditioning - {stimulus}'
-            ] = statistics.mean(filtered_df['FR Conditioning'])
-            for input_column in constants.SIMPLE_FREQUENCY_COLUMNS[5:]:
-                simple_plot_df.loc[
-                    frequency,
-                    f'{input_column} Post-{stimulus}'
-                ] = statistics.mean(filtered_df[input_column])
+                f'{input_column} Post-{stimulus}'
+            ] = statistics.mean(filtered_df[input_column])
     # Sort and return DataFrame
     simple_plot_df.sort_index(inplace=True)
     return simple_plot_df
@@ -301,7 +356,9 @@ def simple_spikerate_plotdf(
 def plot_simple_spikerate(
         simple_plot_df: pd.DataFrame,
         phase: str | None = None,
-        save_figure = False
+        plot_title = None,
+        save_figure = False,
+        filename_suffix = None,
 ) -> None:
     """Plots the specified columns (phases) of `simple_plot_df`.
     
@@ -315,6 +372,7 @@ def plot_simple_spikerate(
         simple_plot_df.plot()
     # Prettify figure:
     plt.xticks(list(simple_plot_df.index))
+    plt.title(plot_title)
     plt.xlabel("Conditioning phase frequency (Hz)")
     plt.ylabel("Mean spike rate per stimulation")
     plt.legend(
@@ -325,7 +383,76 @@ def plot_simple_spikerate(
     ax.set_ylim(0)
     # Save figure if specified:
     if save_figure:
-        filename = (f'simple_spikerate-{phase}.pdf' if phase else
-                    'simple_spikerate-all.pdf')
-        plt.savefig(constants.PLOTS_FOLDER + filename)
+        if filename_suffix:
+            filename = f'simple_spikerate-{filename_suffix}.pdf'
+        elif phase:
+            filename = f'simple_spikerate-{phase}.pdf'
+        else:
+            filename = 'simple_spikerate-all.pdf'
+        base.save_plot('ssr', filename)
     return
+
+
+def plot_raster(
+        spikes_df: pd.DataFrame,
+        plot_id: int,
+        plot_count: int,
+        row_criteria: str,
+        save_figure: bool = False
+) -> None:
+    plt.subplot(plot_count, 1, plot_id)
+    row_ids = spikes_df[row_criteria].unique()
+    y_mech = 0
+    y_elec = len(row_ids) / 2
+    for row_id in row_ids:
+        row_df = spikes_df.loc[spikes_df[row_criteria] == row_id]
+        for epoch_id in row_df['Epoch ID'].unique():
+            epoch_df = row_df.loc[row_df['Epoch ID'] == epoch_id]
+
+            phase, *phase_empty = epoch_df['Phase'].unique()
+            test_stim, *test_stim_empty = epoch_df['Test Stimulus'].unique()
+            test_frequency, *test_frequency_empty = epoch_df['Test Frequency'].unique()
+            epoch_stim, *epoch_stim_empty = epoch_df['Epoch Stimulus'].unique()
+            epoch_number, *epoch_number_empty = epoch_df['Epoch Number'].unique()
+            assert(
+                len(phase_empty) == 0 and
+                len(test_stim_empty) == 0 and
+                len(test_frequency_empty) == 0 and
+                len(epoch_stim_empty) == 0 and
+                len(epoch_number_empty) == 0
+            )
+
+            epoch_number = float(epoch_number)
+
+            if phase == 'Conditioning':
+                x = epoch_number/test_frequency
+            else:
+                if phase == 'Interleaved':
+                    frequency = constants.INTERLEAVED_EPOCHS_FREQUENCY * 2
+                elif phase == 'Recovery':
+                    frequency = constants.RECOVERY_EPOCHS_FREQUENCY * 20
+                x_diff = int(epoch_stim == 'Mechanical')
+                x = (constants.RASTER_PHASE_SPACING[phase] +
+                     (epoch_number * 2 - x_diff) / frequency)
+
+            if test_stim == 'Mechanical':
+                plt.scatter(
+                    x,
+                    y_mech,
+                    len(epoch_df)*constants.RASTER_POINT_SCALE,
+                    constants.RASTER_COLOURS[epoch_stim]
+                )
+            elif test_stim == 'Electrical':
+                plt.scatter(
+                    x,
+                    y_elec,
+                    len(epoch_df)*constants.RASTER_POINT_SCALE,
+                    constants.RASTER_COLOURS[epoch_stim]
+                )
+        if test_stim == 'Mechanical':
+            y_mech += 1
+        elif test_stim == 'Electrical':
+            y_elec += 1
+
+    if save_figure:
+        base.save_plot('raster',constants.VERSION)

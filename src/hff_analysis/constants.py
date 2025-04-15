@@ -4,7 +4,7 @@ This module contains all constants for this Python library, and should
 not include anything else.
 """
 
-VERSION = '0.1.0'
+VERSION = '1.0.0'
 
 
 #*USER-DEFINED CONSTANTS
@@ -12,7 +12,7 @@ VERSION = '0.1.0'
 
 # Filenames and paths
 RAW_DATA_PATH = '.\\labchart_raw_data\\'
-JSON_OUTPUTS = {
+JSON_PATHS = {
     'rootpath': '.\\outputs\\JSON\\',
     'epochs': {
         'path': 'epochs\\',
@@ -25,12 +25,14 @@ JSON_OUTPUTS = {
     'spikes': {
         'path': 'spikes\\',
         'suffix': 'SPIKES'
+    },
+    'spikes_df': {
+        'path': 'dataframes\\',
+        'filename': 'spikes_df'
     }
 }
-PLOT_OUTPUTS = {
-    'rootpath': '.\\outputs\\plots\\',
-    'clusters': 'clusters\\'
-}
+PLOT_PATH = '.\\outputs\\images\\'
+
 
 # The amount of time to trim from the recording after applying a notch
 # filter, in seconds. The specified duration is trimmed from both
@@ -38,16 +40,27 @@ PLOT_OUTPUTS = {
 NOTCHFILT_ARTEFACT_WIDTH_S = 3
 
 # Plotting variables
-PLOT_COLOURS = {
+CLUSTER_COLOURS = {
     'peaks': '#e59e00ff',
     'conditioning_traces': '#56b4e950',
     'interleaved_traces': '#cc79a750',
     'recovery_traces': '#009e7350'
 }
-EPOCH_LINE_WIDTH = 0.1
-SCATTERPLOT_POINT_SIZE = 1
+CLUSTER_LINE_WIDTH = 0.1
+CLUSTER_POINT_SIZE = 1
+
 SIMPLE_PLOT_LEGEND_LOC = 'upper right'
 SIMPLE_PLOT_LEGEND_SIZE = 8
+
+RASTER_COLOURS = {
+    'Mechanical': '#56b4e9ff',
+    'Electrical': '#e59e00ff'
+}
+RASTER_PHASE_SPACING = {
+    'Interleaved': 3.5,
+    'Recovery': 7
+}
+RASTER_POINT_SCALE = 0.1
 
 # Metadata describing animals and units
 METADATA = {
@@ -135,89 +148,118 @@ NOTCH_FILTER_Q = 30
 
 
 #*OUTPUT PARAMETERS
-SIMPLE_FREQUENCY_COLUMNS = [
+ALL_SPIKES_COLUMNS = [
     'Animal ID',
+    'Sex',
     'Position',
-    'Conditioning Frequency (Hz)',
-    'Conditioning Stimulus',
-    'FR Conditioning',
-    'FR Interleaved - Mechanical',
-    'FR Interleaved - Electrical',
-    'FR Recovery - Mechanical',
-    'FR Recovery - Electrical'
+    'Unit ID',
+    'Unit Type',
+    'Test',
+    'Test Stimulus',
+    'Test Frequency',
+    'Test Amplitude',
+    'Test ID',
+    'Repetition',
+    'Trial ID',
+    'Phase',
+    'Epoch Stimulus',
+    'Phase ID',
+    'Epoch Number',
+    'Epoch ID',
+    'Total Epochs',
+    'Latency (ms)',
+    'Size (μV)'
 ]
-SIMPLE_FREQUENCY_TYPES = {
+ALL_SPIKES_TYPES = {
     'Animal ID': 'string',
+    'Sex': 'string',
     'Position': 'uint64',
-    'Conditioning Frequency (Hz)': 'uint64',
-    'FR Conditioning': 'float64',
-    'FR Interleaved - Mechanical': 'float64',
-    'FR Interleaved - Electrical': 'float64',
-    'FR Recovery - Mechanical': 'float64',
-    'FR Recovery - Electrical': 'float64'
+    'Unit ID': 'string',
+    'Unit Type': 'string',
+    'Test Frequency': 'float64',
+    'Test Amplitude': 'float64',
+    'Test ID': 'string',
+    'Repetition': 'uint64',
+    'Trial ID': 'string',
+    'Phase ID': 'string',
+    'Epoch Number': 'uint64',
+    'Epoch ID': 'string',
+    'Total Epochs': 'uint64',
+    'Latency (ms)': 'float64',
+    'Size (μV)': 'float64'
 }
-SIMPLE_FREQUENCY_CATEGORIES = {
-    'Conditioning Stimulus': ['Mechanical', 'Electrical']
+ALL_SPIKES_CATEGORIES = {
+    'Test': ['Frequency', 'Amplitude', '9:1', 'Long Duration'],
+    'Test Stimulus': ['Mechanical', 'Electrical'],
+    'Phase': ['Conditioning', 'Interleaved', 'Recovery'],
+    'Epoch Stimulus': ['Mechanical', 'Electrical']
 }
 
-SIMPLE_PLOT_COLUMNS = [
-    'FR Conditioning - Mechanical',
-    'FR Conditioning - Electrical',
-    'FR Interleaved - Mechanical Post-Mechanical',
-    'FR Interleaved - Electrical Post-Mechanical',
-    'FR Interleaved - Mechanical Post-Electrical',
-    'FR Interleaved - Electrical Post-Electrical',
-    'FR Recovery - Mechanical Post-Mechanical',
-    'FR Recovery - Electrical Post-Mechanical',
-    'FR Recovery - Mechanical Post-Electrical',
-    'FR Recovery - Electrical Post-Electrical' 
+SIMPLE_SPIKERATE_COLUMNS = [
+    'Animal ID',
+    'Sex',
+    'Position',
+    'Unit ID',
+    'Unit Type',
+    'Test',
+    'Test Stimulus',
+    'Test Frequency',
+    'Test Amplitude',
+    'Test ID',
+    'Repetition',
+    'Trial ID',
+    'SSR Conditioning',
+    'SSR Interleaved - Mechanical',
+    'SSR Interleaved - Electrical',
+    'SSR Recovery - Mechanical',
+    'SSR Recovery - Electrical'
 ]
-SIMPLE_PLOT_TYPES = {
-    'FR Conditioning - Mechanical': 'float64',
-    'FR Conditioning - Electrical': 'float64',
-    'FR Interleaved - Mechanical Post-Mechanical': 'float64',
-    'FR Interleaved - Electrical Post-Mechanical': 'float64',
-    'FR Interleaved - Mechanical Post-Electrical': 'float64',
-    'FR Interleaved - Electrical Post-Electrical': 'float64',
-    'FR Recovery - Mechanical Post-Mechanical': 'float64',
-    'FR Recovery - Electrical Post-Mechanical': 'float64',
-    'FR Recovery - Mechanical Post-Electrical': 'float64',
-    'FR Recovery - Electrical Post-Electrical': 'float64'
+SIMPLE_SPIKERATE_TYPES = {
+    'Animal ID': 'string',
+    'Sex': 'string',
+    'Position': 'uint64',
+    'Unit ID': 'string',
+    'Unit Type': 'string',
+    'Test Frequency': 'float64',
+    'Test Amplitude': 'float64',
+    'Test ID': 'string',
+    'Repetition': 'uint64',
+    'Trial ID': 'string',
+    'SSR Conditioning': 'float64',
+    'SSR Interleaved - Mechanical': 'float64',
+    'SSR Interleaved - Electrical': 'float64',
+    'SSR Recovery - Mechanical': 'float64',
+    'SSR Recovery - Electrical': 'float64'
+}
+SIMPLE_SPIKERATE_CATEGORIES = {
+    'Test': ['Frequency', 'Amplitude', '9:1', 'Long Duration'],
+    'Test Stimulus': ['Mechanical', 'Electrical'],
 }
 
-#?Not currently in use
-# OUTPUT_COLUMNS = [
-#     'Animal ID',
-#     'Position',
-#     'Test',
-#     'Conditioning stimulus',
-#     'Conditioning frequency',
-#     'Conditioning period',
-#     'Conditioning amplitude',
-#     'Spikes per trial - conditioning mechanical',
-#     'Spikes per trial - conditioning electrical',
-#     'Spikes per trial - interleaved mechanical',
-#     'Spikes per trial - interleaved electrical',
-#     'Spikes per trial - recovery mechanical',
-#     'Spikes per trial - recovery electrical'
-# ]
-# OUTPUT_TYPES = {
-#     'Animal ID': 'string',
-#     'Position': 'string',
-#     'Conditioning frequency': 'uint64',
-#     'Conditioning period': 'float64',
-#     'Conditioning amplitude': 'float64',
-#     'Spikes per trial - conditioning mechanical': 'object',
-#     'Spikes per trial - conditioning electrical': 'object',
-#     'Spikes per trial - interleaved mechanical': 'object',
-#     'Spikes per trial - interleaved electrical': 'object',
-#     'Spikes per trial - recovery mechanical': 'object',
-#     'Spikes per trial - recovery electrical': 'object'
-# }
-# OUTPUT_CATEGORIES = {
-#     'Test': ['Frequency', 'Amplitude', '9:1', 'Long Duration'],
-#     'Conditioning stimulus': ['Mechanical', 'Electrical']
-# }
+SSR_PLOT_COLUMNS = [
+    'SSR Conditioning - Mechanical',
+    'SSR Conditioning - Electrical',
+    'SSR Interleaved - Mechanical Post-Mechanical',
+    'SSR Interleaved - Electrical Post-Mechanical',
+    'SSR Interleaved - Mechanical Post-Electrical',
+    'SSR Interleaved - Electrical Post-Electrical',
+    'SSR Recovery - Mechanical Post-Mechanical',
+    'SSR Recovery - Electrical Post-Mechanical',
+    'SSR Recovery - Mechanical Post-Electrical',
+    'SSR Recovery - Electrical Post-Electrical' 
+]
+SSR_PLOT_TYPES = {
+    'SSR Conditioning - Mechanical': 'float64',
+    'SSR Conditioning - Electrical': 'float64',
+    'SSR Interleaved - Mechanical Post-Mechanical': 'float64',
+    'SSR Interleaved - Electrical Post-Mechanical': 'float64',
+    'SSR Interleaved - Mechanical Post-Electrical': 'float64',
+    'SSR Interleaved - Electrical Post-Electrical': 'float64',
+    'SSR Recovery - Mechanical Post-Mechanical': 'float64',
+    'SSR Recovery - Electrical Post-Mechanical': 'float64',
+    'SSR Recovery - Mechanical Post-Electrical': 'float64',
+    'SSR Recovery - Electrical Post-Electrical': 'float64'
+}
 
 
 #*REGULAR EXPRESSIONS
@@ -233,7 +275,7 @@ SIMPLE_PLOT_TYPES = {
 # - `testcode`: Four-letter code indicating the test which was
 #   performed.
 # - `extension`: File extension, if the filename includes one.
-FILENAME_REGEX = (
+ADICHT_FILENAME_REGEX = (
     r"(?:(?P<name>^(?P<id>hff\d{2})_pos(?P<position>[\d.]+)_"
     r"(?P<testcode>\w{4})[^.]*)(?P<extension>\..+)?)"
 )
@@ -255,14 +297,20 @@ SWEEP_REGEX = (
 NINEONE_REGEX = r"(?:^mech_(?P<mechval>\d)_elec_(?P<elecval>\d)$)"
 LONGDURATION_REGEX = r"(?:^long_(?P<stimtype>\w{4})$)"
 
+VERSION_REGEX = r"(?:(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+))"
+
 
 #*STIMULATION PARAMETERS
 
-AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY = 100
-FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE = 1
-SWEEPS_CONDITIONING_PHASE_SECONDS = 3
-SWEEPS_INTERLEAVED_EPOCHS_EACH_STIMULUS = 75
-SWEEPS_RECOVERY_EPOCHS_EACH_STIMULUS = 19
+AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY = 100.0
+FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE = 1.0
+SHORT_CONDITIONING_DURATION_SECONDS = 3
+LONG_CONDITIONING_DURATION_SECONDS = 300
+INTERLEAVED_DURATION_SECONDS = 3
+SHORT_RECOVERY_DURATION_SECONDS = 20
+LONG_RECOVERY_DURATION_SECONDS = 600
+INTERLEAVED_EPOCHS_FREQUENCY = 25
+RECOVERY_EPOCHS_FREQUENCY = 1
 
 # The number of samples by which the trigger onset is delayed compared
 # to the artefact onset (positive values indicate that the trigger onset

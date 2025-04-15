@@ -8,32 +8,27 @@ import numpy as np
 import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
+from os import walk
 from scipy import signal
 import re
 
 from . import classes
 from . import constants
 
-# TODO 27/02
-# Separate plot saving into different functions
-# Modify functions to use new filename/path constants
-# Add better version control (e.g. ignore parts which do not affect
-#   compatibility - e.g. patch version)
-
 
 # Regex pattern for parsing filenames:
 # It is compiled here once, rather than within a function, to reduce
 # unnecessary computations.
-filename_regex_pattern = re.compile(constants.FILENAME_REGEX)
+
+adicht_regex_pattern = re.compile(constants.ADICHT_FILENAME_REGEX)
 
 
 ##################### *AUXILIARY HELPER FUNCTIONS* #####################
 
 def typed_dataframe(
-        columns: list[str],
+        df: pd.DataFrame,
         noncategorical_types_dict: dict[str, str],
-        categorical_types_dict: dict[str, list],
-        index: list | None = None
+        categorical_types_dict: dict[str, list]
 ) -> pd.DataFrame:
     """Returns empty DataFrame with typed columns.
     
@@ -51,13 +46,7 @@ def typed_dataframe(
     # Concatenate categorical and non-categorical dtype dictionaries:
     column_types = (noncategorical_types_dict | categorical_types)
     # Return the output DataFrame and its dtypes:
-    if index:
-        return pd.DataFrame(
-            index=index,
-            columns=columns
-        ).astype(column_types)
-    else:
-        return pd.DataFrame(columns=columns).astype(column_types)
+    return df.astype(column_types)
     
 
 ################### *IMPORTING LABCHART RECORDINGS* ####################
@@ -89,12 +78,12 @@ def read_adicht(
     Raises `KeyError` if test type is not recognised.
     """
     # Parse the input filename:
-    m = filename_regex_pattern.search(filename)
+    m = adicht_regex_pattern.search(filename)
     try:
         name = m.group('name')
         extension = m.group('extension') if m.group('extension') else '.adicht'
         animal_id = m.group('id')
-        position = m.group('position')
+        position = int(m.group('position'))
         test_code = m.group('testcode')
         test = constants.TEST_CODE_CONVERSION_TABLE[test_code]
     except AttributeError as e:
@@ -117,7 +106,7 @@ def read_adicht(
     # contains multiple thresholding sweeps and only the final one is of
     # interest). It should also improve the notch filter results.
     data = adi.read_file(
-        rf'{constants.RAW_DATA_FOLDER}{animal_id}\{name}{extension}'
+        rf'{constants.RAW_DATA_PATH}{animal_id}\{name}{extension}'
     )
     # If a list has been specified using the `data_segments` argument,
     # it will be used; otherwise, all available segments will be read.
@@ -302,7 +291,8 @@ def separate_sweep_phases(
     if mech_val == 0:
         start_itlv = triggers_mech[0]
         start_rcvr = triggers_mech[
-            constants.SWEEPS_INTERLEAVED_EPOCHS_EACH_STIMULUS
+            constants.INTERLEAVED_EPOCHS_FREQUENCY *
+            constants.INTERLEAVED_DURATION_SECONDS
         ]
         if elec_val == 0:
             test_stim = 'control'
@@ -314,18 +304,19 @@ def separate_sweep_phases(
         test_stim = 'mechanical'
         stim_value = mech_val
         if test == 'frequency':
-            interleaved_triggers_count = math.floor(
-                mech_val*constants.SWEEPS_CONDITIONING_PHASE_SECONDS
+            first_mech_interleaved = math.floor(
+                mech_val*constants.SHORT_CONDITIONING_DURATION_SECONDS
             )
         elif test == 'amplitude':
-            interleaved_triggers_count = math.floor(
+            first_mech_interleaved = math.floor(
                 constants.AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY*
-                constants.SWEEPS_CONDITIONING_PHASE_SECONDS
+                constants.SHORT_CONDITIONING_DURATION_SECONDS
             )
-        start_itlv = triggers_mech[interleaved_triggers_count]
+        start_itlv = triggers_mech[first_mech_interleaved]
         start_rcvr = triggers_mech[
-            interleaved_triggers_count+
-            constants.SWEEPS_INTERLEAVED_EPOCHS_EACH_STIMULUS
+            first_mech_interleaved+
+            constants.INTERLEAVED_EPOCHS_FREQUENCY *
+            constants.INTERLEAVED_DURATION_SECONDS
         ]
     else:
         # Raise error if neither stimulation value is 0:
@@ -400,7 +391,7 @@ def detect_spikes(
     # Create empty output lists:
     data_epochs = []
     spikes = []
-    for epoch_id, trigger in enumerate(triggers):
+    for epoch_number, trigger in enumerate(triggers):
         # Create `DataEpoch` object describing current epoch and add to
         # `data_epochs` list:
         trace = signal_data[trigger+epoch_start:trigger+epoch_end]
@@ -417,7 +408,7 @@ def detect_spikes(
         peaks, properties = signal.find_peaks(trace, threshold)
         for i, peak in enumerate(peaks):
             spikes.append(classes.spikes.Spike(
-                epoch_id,
+                epoch_number,
                 peak*tick_dt_ms + epoch_timing_ms[0],
                 properties['peak_heights'][i]
             ))
@@ -498,20 +489,36 @@ def filter_spikes(
             trial.position,
             trial.test,
             trial.test_stim,
-            trial.test_freqency,
+            trial.test_frequency,
             trial.test_amplitude,
             *filtered_phases
         ))
     return filtered_trials
-    
 
+
+def save_plot(
+        plot_type: str,
+        target_name: str
+) -> None:
+    # TODO write docstring
+    target_path = (f'{constants.PLOT_PATH}{plot_type}\\')
+    try:
+        plt.savefig(f'{target_path}{target_name}.pdf')
+    except FileNotFoundError:
+        pathlib.Path(target_path).mkdir(
+            parents=True,
+            exist_ok=True
+        )
+        plt.savefig(f'{target_path}{target_name}.pdf')
+    
 
 def plot_spikes(
     spikes: list[classes.spikes.SpikesTrial],
     epochs: list[classes.epochs.EpochsTrial],
     save_figures: bool = False,
     filename: str | None = None,
-    recording_segment: int | None = None
+    recording_segment: int | None = None,
+    repetition: int | None = None
 ) -> None:
     """Plots peaks and traces by epoch to visualise spike detection.
     
@@ -533,44 +540,44 @@ def plot_spikes(
         plt.scatter(
             [x.time_ms for x in spikes_trial.conditioning.mechanical],
             [x.size_uV for x in spikes_trial.conditioning.mechanical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
         plt.scatter(
             [x.time_ms for x in spikes_trial.interleaved.mechanical],
             [x.size_uV for x in spikes_trial.interleaved.mechanical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
         plt.scatter(
             [x.time_ms for x in spikes_trial.recovery.mechanical],
             [x.size_uV for x in spikes_trial.recovery.mechanical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
         plt.figure(1)
         plt.scatter(
             [x.time_ms for x in spikes_trial.conditioning.electrical],
             [x.size_uV for x in spikes_trial.conditioning.electrical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
         plt.scatter(
             [x.time_ms for x in spikes_trial.interleaved.electrical],
             [x.size_uV for x in spikes_trial.interleaved.electrical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
         plt.scatter(
             [x.time_ms for x in spikes_trial.recovery.electrical],
             [x.size_uV for x in spikes_trial.recovery.electrical],
-            constants.SCATTERPLOT_POINT_SIZE,
-            constants.PLOT_COLOURS['peaks'],
+            constants.CLUSTER_POINT_SIZE,
+            constants.CLUSTER_COLOURS['peaks'],
             zorder=1
         )
     # Plot traces by epoch:
@@ -587,7 +594,7 @@ def plot_spikes(
                     f"    Position: {spikes_trial.position}\n"
                     f"    Test: {spikes_trial.test}\n"
                     f"    Test Stimulus: {spikes_trial.test_stim}\n"
-                    f"    Test Frequency: {spikes_trial.test_freqency} Hz"
+                    f"    Test Frequency: {spikes_trial.test_frequency} Hz"
                     "\n"
                     f"    Test Amplitude: {spikes_trial.test_amplitude} μA"
                 )
@@ -598,34 +605,40 @@ def plot_spikes(
                 [i * epoch.tick_dt_ms + epoch.start_ms
                 for i, _x in enumerate(epoch.trace)],
                 epoch.trace,
-                c=constants.PLOT_COLOURS[f'{epoch.phase}_traces'],
-                linewidth=constants.EPOCH_LINE_WIDTH,
+                c=constants.CLUSTER_COLOURS[f'{epoch.phase}_traces'],
+                linewidth=constants.CLUSTER_LINE_WIDTH,
                 zorder=0
                 )
-    plt.figure(0)
-    plt.xlabel("Time (ms)")
-    plt.ylabel("Signal voltage (μV)")
-    plt.figure(1)
-    plt.xlabel("Time (ms)")
-    plt.ylabel("Signal voltage (μV)")
+    plot_title = (
+        f'{spikes_trial.animal_id}-{spikes_trial.position} ('
+        f'{constants.METADATA[spikes_trial.animal_id.upper()][spikes_trial.position]})'
+    )
+    for plot_id in range(0,2):
+        plt.figure(plot_id)
+        plt.title(plot_title)
+        plt.xlabel("Time (ms)")
+        plt.ylabel("Signal voltage (μV)")
     # Save figures if specified:
     if save_figures:
-        assert filename is not None and recording_segment is not None, (
+        assert (
+            filename is not None and
+            recording_segment is not None and
+            repetition is not None
+        ), (
             "When saving figures, `filename` and `recording_segment` "
             "arguments must both be provided."
         )
-        common_file_path = (
-            f'{constants.CLUSTER_PLOTS_FOLDER}{filename}'
-            f'-[{recording_segment}]-'
-        )
+        
         plt.figure(0)
-        plt.xlabel("Time (ms)")
-        plt.ylabel("Signal voltage (μV)")
-        plt.savefig(common_file_path + 'mechanical.pdf')
+        save_plot(
+            'clusters',
+            f'{filename}-[{repetition}-{recording_segment}]-mechanical'
+        )
         plt.figure(1)
-        plt.xlabel("Time (ms)")
-        plt.ylabel("Signal voltage (μV)")
-        plt.savefig(common_file_path + 'electrical.pdf')
+        save_plot(
+            'clusters',
+            f'{filename}-[{repetition}-{recording_segment}]-electrical'
+        )
     return
 
 
@@ -667,10 +680,10 @@ def convert_to_json_dict(obj) -> any:
 
 
 def save_to_json(
-        file_path: str,
         input_filename: str,
         recording_index: int,
-        output_suffix: str,
+        repetition: int,
+        save_type: str,
         force_overwrite: bool = False,
         **kwargs
 ) -> None:
@@ -695,13 +708,18 @@ def save_to_json(
     Raises `TypeError` if any values in `kwargs` contain items which are
     not JSON serialisable after applying `convert_to_json_dict()`.
     """
-    # Construct target filename for JSON file:
+    # Construct target name and path for JSON file:
+    file_path = (
+        constants.JSON_PATHS['rootpath'] +
+        constants.JSON_PATHS[save_type]['path']
+    )
+    output_suffix = constants.JSON_PATHS[save_type]['suffix']
     filename = (
-        f'{input_filename}-[{recording_index}]-{output_suffix}-'
-        f'{constants.VERSION}.json'
+        f'{input_filename}-[{repetition}-{recording_index}]-'
+        f'{output_suffix}-{constants.VERSION}.json'
     )
     # Construct dict to save as JSON:
-    output_dict = {}
+    output_dict = {'version': constants.VERSION, 'repetition': repetition}
     for key, value in kwargs.items():
         output_dict[key] = convert_to_json_dict(value)
     # Save to JSON and print success/failure message:
@@ -761,3 +779,98 @@ def confirm_save(
     else:
         print(f"FAILURE: `{filename}` skipped")
     return
+
+
+def get_json_filenames(json_type: str) -> tuple[list[str], list[str]]:
+    # TODO write docstring
+    current_version = classes.VersionNumber(constants.VERSION)
+    json_path = (
+        constants.JSON_PATHS['rootpath'] +
+        constants.JSON_PATHS[json_type]['path']
+    )
+    json_filenames = [
+        f for f in next(walk(json_path), (None, None, []))[2]
+    ]
+    incompatible_files = []
+    for filename in json_filenames:
+        file_version = classes.VersionNumber(filename)
+        if file_version.major != current_version.major:
+            incompatible_files.append(filename)
+            print(f"{filename}: EXCLUDE (incompatible version)")
+        elif file_version.minor != current_version.minor:
+            print(f"{filename}: INCLUDE (warning: minor version mismatch)")
+        else:
+            print(f"{filename}: INCLUDE")
+    for filename in incompatible_files:
+        json_filenames.remove(filename)
+    return (json_filenames, incompatible_files)
+
+
+def load_spikes_trials(
+        json_spike_filenames: list[str]
+) -> list[tuple[list[classes.spikes.SpikesTrial], int]]:
+    # TODO write docstring
+    all_trials = []
+    for spike_filename in json_spike_filenames:
+        # Construct path from which JSON file is to be read:
+        save_file = (
+            constants.JSON_PATHS['rootpath'] +
+            constants.JSON_PATHS['spikes']['path'] +
+            spike_filename
+        )
+        # Read JSON file and convert to list of `SpikesTrial` objects:
+        spikes_dict = json.load(open(save_file))
+        spikes = [classes.spikes.SpikesTrial.from_dict(dictionary)
+                  for dictionary in spikes_dict['spikes']]
+        all_trials.append((spikes, spikes_dict['repetition']))
+    return all_trials
+
+
+def tabulate_spikes(
+        spikes: list[list[classes.spikes.SpikesTrial]]
+) -> pd.DataFrame:
+    # TODO write docstring
+    spikes_df = pd.DataFrame()
+    for (list, repetition) in spikes:
+        for trial in list:
+            spikes_df = pd.concat(
+                [spikes_df, trial.to_df(repetition)],
+                ignore_index=True
+            )
+    return typed_dataframe(
+        spikes_df,
+        constants.ALL_SPIKES_TYPES,
+        constants.ALL_SPIKES_CATEGORIES
+    )
+
+
+def spikes_table(load_df_json: bool = True) -> pd.DataFrame:
+    # TODO write docstring
+    df_json_path = (
+        constants.JSON_PATHS['rootpath'] +
+        constants.JSON_PATHS['spikes_df']['path']
+    )
+    df_json_name = (
+        constants.JSON_PATHS['spikes_df']['filename'] +
+        f'-{constants.VERSION}.json'
+    )
+
+    if load_df_json:
+        try:
+            df_json = json.load(open(df_json_path+df_json_name))
+            return pd.DataFrame.from_dict(df_json)
+        except OSError:
+            pass
+
+    (spikes_files, _incompatible_files) = get_json_filenames('spikes')
+    all_trials = load_spikes_trials(spikes_files)
+    spikes_df = tabulate_spikes(all_trials)
+    try:
+        spikes_df.to_json(df_json_path+df_json_name,orient='records')
+    except OSError:
+        pathlib.Path(df_json_path).mkdir(
+            parents=True,
+            exist_ok=True
+        )
+        spikes_df.to_json(df_json_path+df_json_name,orient='records')
+    return spikes_df
