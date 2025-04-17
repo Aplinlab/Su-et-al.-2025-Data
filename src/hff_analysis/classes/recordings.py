@@ -31,6 +31,10 @@ class FileReadSettings:
     frs.threshold_uV`, and `epoch_timing_ms = frs.epoch_timing_ms`, then
     run STEP 2.
     """
+    # TODO Update docstring to include information about
+    # TODO  `spike_criteria`, `exclude_frequencies`, and
+    # TODO  `exclude_amplitudes`
+    # TODO Write a function which does the steps described
     def __init__(
             self,
             version: str,
@@ -38,7 +42,9 @@ class FileReadSettings:
             recording_segment: int,
             epoch_timing_ms: tuple[int | float, int | float],
             threshold_uV: int | float,
-            spike_criteria: dict[str, SpikeCriteria]
+            spike_criteria: dict[str, SpikeCriteria],
+            exclude_frequencies: list[int | float] | None = None,
+            exclude_amplitudes: list[int | float] | None = None
     ):
         self.version = version
         self.filename = filename
@@ -46,16 +52,29 @@ class FileReadSettings:
         self.epoch_timing_ms = epoch_timing_ms
         self.threshold_uV = threshold_uV
         self.spike_criteria = spike_criteria
+        if exclude_frequencies is None:
+            self.exclude_frequencies = []
+        else:
+            self.exclude_frequencies = exclude_frequencies
+        if exclude_amplitudes is None:
+            self.exclude_amplitudes = []
+        else:
+            self.exclude_amplitudes = exclude_amplitudes
 
     @classmethod
     def from_dict(cls, dictionary: dict[str, any]):
+        exclude_frequencies = dictionary.get('exclude_frequencies', [])
+        exclude_amplitudes = dictionary.get('exclude_amplitudes', [])
         return cls(
+            dictionary['version'],
             dictionary['filename'],
             dictionary['recording_segment'],
             dictionary['epoch_timing_ms'],
             dictionary['threshold_uV'],
             {key: SpikeCriteria(**value) for key, value in
-             dictionary['spike_criteria'].items()}
+             dictionary['spike_criteria'].items()},
+            exclude_frequencies,
+            exclude_amplitudes
         )
 
 

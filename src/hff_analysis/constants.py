@@ -4,7 +4,7 @@ This module contains all constants for this Python library, and should
 not include anything else.
 """
 
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 
 
 #*USER-DEFINED CONSTANTS
@@ -50,7 +50,7 @@ CLUSTER_COLOURS = {
 }
 CLUSTER_LINE_WIDTH = 0.3
 CLUSTER_POINT_SIZE = 0.5
-CLUSTER_YMIN = -100
+CLUSTER_YMIN = -200
 CLUSTER_YMAX_SCALE = 1.2
 
 SIMPLE_PLOT_LEGEND_LOC = 'upper right'

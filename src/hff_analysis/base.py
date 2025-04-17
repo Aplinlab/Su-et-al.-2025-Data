@@ -418,7 +418,9 @@ def detect_spikes(
 
 def filter_spikes(
         trials: list[classes.spikes.SpikesTrial],
-        criteria: dict[str, dict[str, int | float | None]]
+        criteria: dict[str, dict[str, int | float | None]],
+        exclude_frequencies: list[int | float],
+        exclude_amplitudes: list[int | float]
 ) -> list[classes.spikes.SpikesTrial]:
     try:
         spike_criteria_mech = classes.recordings.SpikeCriteria(
@@ -436,6 +438,9 @@ def filter_spikes(
         raise
     filtered_trials = []
     for trial in trials:
+        if (trial.test_frequency in exclude_frequencies or
+            trial.test_amplitude in exclude_amplitudes):
+            continue
         filtered_phases = []
         for phase in [trial.conditioning, trial.interleaved, trial.recovery]:
             filtered_spikes_mech = []
@@ -513,12 +518,14 @@ def save_plot(
     
 
 def plot_clusters(
-    spikes: list[classes.spikes.SpikesTrial],
-    epochs: list[classes.epochs.EpochsTrial],
-    repetition: int,
-    recording_segment: int,
-    save_figures: bool = False,
-    filename: str | None = None
+        spikes: list[classes.spikes.SpikesTrial],
+        epochs: list[classes.epochs.EpochsTrial],
+        repetition: int,
+        recording_segment: int,
+        exclude_frequencies: list[int | float] = [],
+        exclude_amplitudes: list[int | float] = [],
+        save_figures: bool = False,
+        filename: str | None = None
 ) -> None:
     """Plots peaks and traces by epoch to visualise spike detection.
     
@@ -566,6 +573,9 @@ def plot_clusters(
                     pass
     # Plot traces by epoch:
     for epochs_trial in epochs:
+        if (epochs_trial.test_frequency in exclude_frequencies or
+            epochs_trial.test_amplitude in exclude_amplitudes):
+            continue
         for epoch in epochs_trial.epochs:
             # If an epoch has an invalid stimulus type, try-except block
             # prints an error message and skips it:
@@ -594,7 +604,7 @@ def plot_clusters(
                 zorder=0
                 )
     plot_title = (
-        f'{spikes_trial.animal_id}-{spikes_trial.position} '
+        f'{spikes_trial.animal_id.upper()}-{spikes_trial.position} '
         f'[{repetition}-{recording_segment}] ('
         f'{constants.METADATA[spikes_trial.animal_id.upper()][spikes_trial.position]})'
     )
@@ -841,10 +851,14 @@ def spikes_table(load_df_json: bool = True) -> pd.DataFrame:
     if load_df_json:
         try:
             df_json = json.load(open(df_json_path+df_json_name))
-            return pd.DataFrame.from_dict(df_json)
+            spikes_df = pd.DataFrame.from_dict(df_json)
+            print(f"`spikes_df` loaded from file: {df_json_name}")
+            print('\n'.join([unit_id for unit_id in spikes_df['Unit ID'].unique()]))
+            return spikes_df
         except OSError:
             pass
 
+    print("Building `spikes_df` from saved spikes...")
     (spikes_files, _incompatible_files) = get_json_filenames('spikes')
     all_trials = load_spikes_trials(spikes_files)
     spikes_df = tabulate_spikes(all_trials)
