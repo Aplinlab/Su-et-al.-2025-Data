@@ -1,70 +1,15 @@
 """Constants to be used in the HFF analysis pipeline.
 
-This module contains all constants for this Python library, and should
-not include anything else.
+This module contains all constants for the current version of this
+Python library, and should not include anything else. Legacy constants
+can be found in `updater.py`.
 """
 
-VERSION = '1.1.0'
+VERSION = '2.0.0'
 
 
-#*USER-DEFINED CONSTANTS
+####################### *USER-DEFINED CONSTANTS* #######################
 # These constants may be tweaked as required.
-
-# Filenames and paths
-RAW_DATA_PATH = '.\\labchart_raw_data\\'
-JSON_PATHS = {
-    'rootpath': '.\\outputs\\JSON\\',
-    'epochs': {
-        'path': 'epochs\\',
-        'suffix': 'EPOCHS'
-    },
-    'frs': {
-        'path': 'file_read_settings\\',
-        'suffix': 'FILEREADSETTINGS'
-    },
-    'spikes': {
-        'path': 'spikes\\',
-        'suffix': 'SPIKES'
-    },
-    'spikes_df': {
-        'path': 'dataframes\\',
-        'filename': 'spikes_df'
-    }
-}
-PLOT_PATH = '.\\outputs\\images\\'
-
-
-# The amount of time to trim from the recording after applying a notch
-# filter, in seconds. The specified duration is trimmed from both
-# the beginning and end of the recording.
-NOTCHFILT_ARTEFACT_WIDTH_S = 3
-
-# Plotting variables
-FIGSIZE = (8, 12)
-
-CLUSTER_COLOURS = {
-    'peaks': '#e59e00ff',
-    'conditioning_traces': '#56b4e950',
-    'interleaved_traces': '#cc79a750',
-    'recovery_traces': '#009e7350'
-}
-CLUSTER_LINE_WIDTH = 0.3
-CLUSTER_POINT_SIZE = 0.5
-CLUSTER_YMIN = -200
-CLUSTER_YMAX_SCALE = 1.2
-
-SIMPLE_PLOT_LEGEND_LOC = 'upper right'
-SIMPLE_PLOT_LEGEND_SIZE = 8
-
-RASTER_COLOURS = {
-    'Mechanical': '#56b4e9ff',
-    'Electrical': '#e59e00ff'
-}
-RASTER_PHASE_SPACING = {
-    'Interleaved': 3.5,
-    'Recovery': 7
-}
-RASTER_POINT_SCALE = 0.1
 
 # Metadata describing animals and units
 METADATA = {
@@ -129,10 +74,59 @@ METADATA = {
 }
 
 
-### BACKEND CONSTANTS ###
+#*NOTCH FILTER PARAMETERS
+NOTCHFILT_F0 = 50
+NOTCHFILT_Q = 30
+# The amount of time to trim from the recording after applying a notch
+# filter, in seconds. The specified duration is trimmed from both
+# the beginning and end of the recording.
+NOTCHFILT_ARTEFACT_WIDTH_S = 3
 
 
-TEST_CODE_CONVERSION_TABLE = {
+#*FILEPATHS
+RAW_DATA_PATH = '.\\labchart_raw_data\\'
+SAVE_PATHS = {
+    'json_root': '.\\outputs\\JSON\\',
+    'plot_root': '.\\outputs\\images\\',
+    'epochs':  'epochs\\',
+    'frs': 'file_read_settings\\',
+    'spikes': 'spikes\\',
+    'spikes_df': 'dataframes\\'
+}
+SPIKES_DF_JSON_NAME = 'spikesdf'
+
+
+#*PLOTS
+FIGSIZE = (8, 12)
+PALETTE = {
+    'black': '#000000',
+    'orange': '#e69f00',
+    'sky': '#56b4e9',
+    'pink': '#cc79a7',
+    'green': '#009e73',
+    'yellow': '#f0e442',
+    'blue': '#0072b2',
+    'vermillion': '#d55e00'
+}
+
+CLUSTER_LINE_WIDTH = 0.3
+CLUSTER_POINT_SIZE = 0.1
+CLUSTER_YMIN = -200
+CLUSTER_YMAX_SCALE = 1.2
+
+SSR_PLOT_YLIM = (-0.05, 1.05)
+SSR_PLOT_LEGEND_SIZE = 8
+
+RASTER_PHASE_SPACING = {
+    'interleaved': 3.5,
+    'recovery': 7
+}
+RASTER_POINT_SIZE = 0.1
+
+
+######################### *BACKEND CONSTANTS* ##########################
+
+TEST_CODES = {
     'freq': 'frequency',
     'ampl': 'amplitude',
     'nine': 'nine-one',
@@ -140,15 +134,38 @@ TEST_CODE_CONVERSION_TABLE = {
 }
 EXPERIMENTAL_PHASES = ['conditioning', 'interleaved', 'recovery']
 STIMULATION_TYPES = ['mechanical', 'electrical']
+OUTPUT_TYPES = ['clusters', 'frs', 'epochs', 'spikes']
 
 
 #*UNIT CONVERSION CONSTANTS
 MILLISECONDS_PER_SECOND = 1000
 
 
-#*NOTCH FILTER PARAMETERS
-NOTCH_FILTER_F0 = 50
-NOTCH_FILTER_Q = 30
+#*STIMULATION PARAMETERS
+
+AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY = 100.0
+FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE = 1.0
+SHORT_CONDITIONING_DURATION_SECONDS = 3
+LONG_CONDITIONING_DURATION_SECONDS = 300
+INTERLEAVED_DURATION_SECONDS = 3
+SHORT_RECOVERY_DURATION_SECONDS = 20
+LONG_RECOVERY_DURATION_SECONDS = 600
+INTERLEAVED_EPOCHS_FREQUENCY = 25
+RECOVERY_EPOCHS_FREQUENCY = 1
+
+# The number of samples by which the trigger onset is delayed compared
+# to the artefact onset (positive values indicate that the trigger onset
+# occurs after the artefact onset).
+TRIGGER_DELAY_SAMPLES = 4
+
+# The fractional amount below recorded trigger value which triggers
+# may be expected to dip.
+# In actual testing, it seems that a much higher value (i.e. a narrower
+# window for error) is fine. However, the value of 0.9 is large enough
+# not to interfere with trigger detection within amplitude sweeps where
+# the maximum value is no more than 4x the minimum value, so for the
+# purposes of our analysis it should be completely acceptable.
+TRIGGER_DETECTION_NOISE_WINDOW = 0.9
 
 
 #*OUTPUT PARAMETERS
@@ -192,12 +209,6 @@ ALL_SPIKES_TYPES = {
     'Latency (ms)': 'float64',
     'Size (μV)': 'float64'
 }
-ALL_SPIKES_CATEGORIES = {
-    'Test': ['Frequency', 'Amplitude', '9:1', 'Long Duration'],
-    'Test Stimulus': ['Mechanical', 'Electrical'],
-    'Phase': ['Conditioning', 'Interleaved', 'Recovery'],
-    'Epoch Stimulus': ['Mechanical', 'Electrical']
-}
 
 SIMPLE_SPIKERATE_COLUMNS = [
     'Animal ID',
@@ -235,10 +246,6 @@ SIMPLE_SPIKERATE_TYPES = {
     'SSR Recovery - Mechanical': 'float64',
     'SSR Recovery - Electrical': 'float64'
 }
-SIMPLE_SPIKERATE_CATEGORIES = {
-    'Test': ['Frequency', 'Amplitude', '9:1', 'Long Duration'],
-    'Test Stimulus': ['Mechanical', 'Electrical'],
-}
 
 SSR_PLOT_COLUMNS = [
     'SSR Conditioning - Mechanical',
@@ -269,6 +276,8 @@ SSR_PLOT_TYPES = {
 #*REGULAR EXPRESSIONS
 # For parsing filenames and recording comments.
 
+VERSION_REGEX = r"(?:(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+))"
+
 # Reads a `.adicht` filename with or without the extension and captures
 # the following groups:
 # - `name`: Filename without file extension.
@@ -280,8 +289,8 @@ SSR_PLOT_TYPES = {
 #   performed.
 # - `extension`: File extension, if the filename includes one.
 ADICHT_FILENAME_REGEX = (
-    r"(?:(?P<name>^(?P<id>hff\d{2})_pos(?P<position>[\d.]+)_"
-    r"(?P<testcode>\w{4})[^.]*)(?P<extension>\..+)?)"
+    r"(?:^(?P<name>(?P<a_id>\w{3}\d{2})_pos(?P<pos>[\d]+)_"
+    r"(?P<testcode>\w{4})[^.]*)(?P<extension>\..+)?$)"
 )
 
 # The following expressions parse comments attached to different test
@@ -301,31 +310,8 @@ SWEEP_REGEX = (
 NINEONE_REGEX = r"(?:^mech_(?P<mechval>\d)_elec_(?P<elecval>\d)$)"
 LONGDURATION_REGEX = r"(?:^long_(?P<stimtype>\w{4})$)"
 
-VERSION_REGEX = r"(?:(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+))"
-
-
-#*STIMULATION PARAMETERS
-
-AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY = 100.0
-FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE = 1.0
-SHORT_CONDITIONING_DURATION_SECONDS = 3
-LONG_CONDITIONING_DURATION_SECONDS = 300
-INTERLEAVED_DURATION_SECONDS = 3
-SHORT_RECOVERY_DURATION_SECONDS = 20
-LONG_RECOVERY_DURATION_SECONDS = 600
-INTERLEAVED_EPOCHS_FREQUENCY = 25
-RECOVERY_EPOCHS_FREQUENCY = 1
-
-# The number of samples by which the trigger onset is delayed compared
-# to the artefact onset (positive values indicate that the trigger onset
-# occurs after the artefact onset).
-TRIGGER_DELAY_SAMPLES = 4
-
-# The fractional amount below recorded trigger value which triggers
-# may be expected to dip.
-# In actual testing, it seems that a much higher value (i.e. a narrower
-# window for error) is fine. However, the value of 0.9 is large enough
-# not to interfere with trigger detection within amplitude sweeps where
-# the maximum value is no more than 4x the minimum value, so for the
-# purposes of our analysis it should be completely acceptable.
-TRIGGER_DETECTION_NOISE_WINDOW = 0.9
+SAVED_FILENAME_REGEX = (
+    r"(?:(?P<savetype>\w+)_(?P<u_id>(?P<a_id>\w{3}\d{2})-(?P<pos>\d+))_"
+    r"\[(?P<rep>\d+)-(?P<rec>\d+)\]_(?P<testcode>\w{4})_"
+    r"(?P<version>v\d+\.\d+\.\d+)(?P<extension>\..+)?$)"
+)

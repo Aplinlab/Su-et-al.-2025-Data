@@ -1,61 +1,43 @@
-"""#TODO Write module docstring.
+"""Functions exposed to the user.
+
+See package docstring for function summaries.
 """
 
 import adi
 import json
-import math
-import numpy as np
-import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
-from os import walk
-from scipy import signal
-import re
+import pandas as pd
 
 from . import classes
 from . import constants
+from . import utils
+from . import updater
+from . import freq
 
 
-# Regex pattern for parsing filenames:
-# It is compiled here once, rather than within a function, to reduce
-# unnecessary computations.
+############################# *main_part1* #############################
 
-adicht_regex_pattern = re.compile(constants.ADICHT_FILENAME_REGEX)
-
-
-##################### *AUXILIARY HELPER FUNCTIONS* #####################
-
-def typed_dataframe(
-        df: pd.DataFrame,
-        noncategorical_types_dict: dict[str, str],
-        categorical_types_dict: dict[str, list]
-) -> pd.DataFrame:
-    """Returns empty DataFrame with typed columns.
+def load_filereadsettings(
+        frs_filename: str
+) -> classes.recordings.FileReadSettings:
+    """Loads `FileReadSettings` object from JSON file.
     
-    Note that this function is only useful if at least one column dtype
-    is categorical. If no column dtypes are categorical, the desired
-    outcome can be achieved in a single line using:
-
-        df = pd.DataFrame(index=index, columns=columns).astype(column_types)
+    The returned object can be used to reproduce an earlier run of
+    `main_part1`.
     """
-    # Define categorical dtypes using a dictionary:
-    categorical_types = {
-        column: pd.CategoricalDtype(categories, False) for column, categories
-        in categorical_types_dict.items()
-    }
-    # Concatenate categorical and non-categorical dtype dictionaries:
-    column_types = (noncategorical_types_dict | categorical_types)
-    # Return the output DataFrame and its dtypes:
-    return df.astype(column_types)
-    
-
-################### *IMPORTING LABCHART RECORDINGS* ####################
-
-def trim_1darray(trace: np.ndarray, trim_width: int) -> np.ndarray:
-    """Removes `trim_width` values from each end of a 1D NumPy array."""
-    trimmed_start = trim_width
-    trimmed_end = len(trace)-trim_width
-    return trace[trimmed_start:trimmed_end]
+    # Construct file path:
+    frs_filepath = (constants.SAVE_PATHS['json_root'] +
+                    constants.SAVE_PATHS['frs'])
+    save_file = frs_filepath + frs_filename
+    # Add file extension if not already present:
+    if save_file[-5:].lower() != '.json':
+        save_file += '.json'
+    # Load file as `FileReadSettings` object:
+    frs = classes.recordings.FileReadSettings.from_dict(json.load(open(
+        save_file
+    )))
+    return frs
 
 
 def read_adicht(
@@ -67,8 +49,8 @@ def read_adicht(
     # Arguments
     * `filename` -- name of the file to be read. If an extension is
     included, it will be used. If no extension is provided, `.adicht`
-    will be used. Note that extensions other than `.adicht` are untested
-    and may result in an error.
+    will be used. **Extensions other than `.adicht` are untested
+    and may result in an error.**
     * `data_segments` -- list of recording segments to read. If a list
     is not provided, all recording segments in the file will be read.
 
@@ -78,25 +60,7 @@ def read_adicht(
     Raises `KeyError` if test type is not recognised.
     """
     # Parse the input filename:
-    m = adicht_regex_pattern.search(filename)
-    try:
-        name = m.group('name')
-        extension = m.group('extension') if m.group('extension') else '.adicht'
-        animal_id = m.group('id')
-        position = int(m.group('position'))
-        test_code = m.group('testcode')
-        test = constants.TEST_CODE_CONVERSION_TABLE[test_code]
-    except AttributeError as e:
-        # AttributeError is raised if m is None (i.e. if regex pattern
-        # didn't match)
-        raise ValueError(
-            f"Filename does not match the expected format ({filename})."
-        ) from e
-    except KeyError as e:
-        # KeyError raised if `[test_code]` not found in
-        # `constants.TEST_CODE_CONVERSION_TABLE`
-        raise KeyError(f"Unable to match test type ({filename}).") from e
-    
+    filename_info = classes.recordings.FilenameInfo.from_filename(filename)
     # Read the specified file and break it into recording segments (each
     # time recording was started/stopped within the file), extracting
     # data from each segment separately:
@@ -106,314 +70,193 @@ def read_adicht(
     # contains multiple thresholding sweeps and only the final one is of
     # interest). It should also improve the notch filter results.
     data = adi.read_file(
-        rf'{constants.RAW_DATA_PATH}{animal_id}\{name}{extension}'
+        constants.RAW_DATA_PATH + filename_info.animal_id + '\\' +
+        filename_info.name + filename_info.extension
     )
     # If a list has been specified using the `data_segments` argument,
     # it will be used; otherwise, all available segments will be read.
     if data_segments:
-        records = [read_record(data, i) for i in data_segments]
+        records = [utils.read_record(data, i) for i in data_segments]
     else:
-        records = [read_record(data, i) for i, _x in enumerate(data.records)]
+        records = [utils.read_record(data, i) for i, _x in
+                   enumerate(data.records)]
     # Populate `Recording` attributes which `read_record()` cannot:
     for record in records:
-        record.animal_id = animal_id
-        record.position = position
-        record.test = test
+        record.animal_id = filename_info.animal_id
+        record.position = filename_info.position
+        record.test = filename_info.test
     return records
 
 
-def read_record(
-        data: adi.read.File,
-        record_number: int
-) -> classes.recordings.Recording:
-    """Reads a recording segment and returns a `Recording` object.
+def update_outputs(
+        save_outputs: str | list[str],
+        input_filenames: list[str],
+        input_folder: str | None = None,
+        show_plots = False
+) -> None:
+    """Reads outdated FRS files and saves updated outputs.
     
-    A recording segment is created whenever recording is started within
-    a `.adicht` file. Note that the `animal_id`, `position`, and `test`
-    properties of the returned `Recording` object are initialised as
-    `None` and must be populated afterwards.
-
-    # Error Handling
-    Raises `AssertionError` if either of two conditions occurs:
-    1. Comments have not been stored in sequential order within the
-    recording segment. Handling of this case has not been implemented,
-    but a solution is suggested within the function body should this
-    issue arise.
-    2. Artefact trimming causes a comment to fall outside the usable
-    portion of the recording. Again, handling of this case has not been
-    implemented, but more information is provided within the error
-    message.
-
-    The error message will identify which of these conditions has been
-    encountered.
-    """
-    # Prepare variables for timing:
-    # - `tick_dt` -- duration of a sample in seconds.
-    # - `b` and `a` -- used for filtering.
-    # - `artefact_width_samples` -- used when trimming data to remove
-    #   edge artefacts from filtering and adjusting comment timings to
-    #   match.
-    # TODO Stretch goal -- replace `constants.NOTCH_FILTER_F0` with a
-    # TODO dynamically calculated frequency, using a Fourier transform
-    # TODO to determine actual peak frequency.
-    record = data.records[record_number]
-    tick_dt = record.tick_dt
-    b, a = signal.iirnotch(
-        constants.NOTCH_FILTER_F0,
-        constants.NOTCH_FILTER_Q,
-        fs=1/tick_dt
-    )
-    artefact_width_samples = int(constants.NOTCHFILT_ARTEFACT_WIDTH_S/tick_dt)
-
-    # Extract signal and trigger data:
-    # The signal is inverted and filtered during this step, and all
-    # traces and marker timings are trimmed to remove edge artefacts or
-    # remain in sync with the trimmed signal.
-    signal_raw = data.channels[0].get_data(record_number+1)*-1
-    signal_filtered = signal.filtfilt(b, a, signal_raw)
-    signal_trimmed = trim_1darray(signal_filtered, artefact_width_samples)
-
-    mechstim = data.channels[1].get_data(record_number+1)
-    mechstim_trimmed = trim_1darray(mechstim, artefact_width_samples)
-
-    elecstim = data.channels[2].get_data(record_number+1)
-    elecstim_trimmed = trim_1darray(elecstim, artefact_width_samples)
-
-    # Extract comments and adjust timings to match trimmed signals:
-    #!This will fail if comments are not stored sequentially
-    # Solution: make a list of comments from `record.comments` which has
-    # explicitly sorted by `record.comments.time`
-    markers = []
-    for i, comment in enumerate(record.comments):
-        start = int(comment.time/tick_dt - artefact_width_samples)
-        if i < len(record.comments)-1:
-            end = int((record.comments[i+1].time)/tick_dt -
-                      artefact_width_samples)
-            assert start < end, (
-                "Comments have not been stored in sequential order. This is "
-                "known to break detection of recording trials. If this error "
-                "is ever raised, `src.read_record()` must be modified to be "
-                "robust to out-of-order comment storage. A suggested solution "
-                "is provided within the function.\n"
-                f"    Comment: {comment.text} ({i})\n"
-                f"    Start: {start}\n"
-                f"    End: {end}"
-            )
-        else:
-            end =  int(len(signal_trimmed)/tick_dt - artefact_width_samples)
-            assert start < end, (
-                "Artefact trimming has resulted in this comment falling "
-                "outside the usable portion of the recording.\n"
-                f"    Comment: {comment.text} ({i})\n"
-                f"    Start: {start}\n"
-                f"    End: {end}\n"
-                "Consult the file to decide if this recording segment should "
-                "be used, and skip it if it is not useful. However, if it is "
-                "useful, either reduce `artefact_width_samples` or modify "
-                "this function to allow manual skipping of specific comments. "
-                "Another solution would be to modify the function such that "
-                "the two problems raise different error types, and handle "
-                "this problem by automatically skipping any recording "
-                "segments which raise it."
-            )
-
-        # Add marker to list:
-        markers.append(classes.recordings.Marker(comment.text, start, end))
-
-    # Print the duration of the record for inspection purposes:
-    signal_length_s = len(signal_trimmed)*tick_dt
-    print(f"[{record_number}]: {signal_length_s} s")
-
-    # Return a `Recording` object, populating fields which are known and
-    # initialising others as `None`:
-    return classes.recordings.Recording(
-        None,
-        None,
-        None,
-        tick_dt,
-        signal_trimmed,
-        mechstim_trimmed,
-        elecstim_trimmed,
-        markers
-    )
-
-
-#################### *SEPARATING TRIALS AND EPOCHS* ####################
-
-def trigger_value(
-        trigger_data: np.ndarray,
-        correction_factor: float = 1.0
-) -> float:
-    """Returns the value of trigger peaks in `trigger_data`."""
-    # Previously, this looked for the minimum value within the trigger
-    # data (i.e. the peak discharge amplitude) and corrected it to peak
-    # amplitude. I believe that this was done to solve an imaginary
-    # issue so have changed it to simply look for the peak amplitude
-    # directly. However, if issues arise, this is a potential cause.
-    return round(max(trigger_data)*correction_factor, 1)
-
-
-def triggers(
-        trigger_data: np.ndarray,
-        trigger_threshold: int | float
-) -> list[int]:
-    """Returns onset index of all triggers in `trigger_data` as a list.
-
-    `trigger_data` is first converted into a list of binary values
-    according to whether it exceeds `trigger_threshold`. The binary list
-    is then convolved with the array `[1,-1]` to detect left edges (note
-    that `np.convolve` flips the smaller array before performing the
-    convolution). The index (i.e. time in samples) of each left edge is
-    corrected for the known latency delay between the trigger and
-    recording channels, and the adjusted times are collected into a list
-    which is returned.
-    """
-    triggers_binary = [x>trigger_threshold for x in trigger_data]
-    triggers_edges = np.convolve(triggers_binary, [1,-1], 'same')
-    return [i-constants.TRIGGER_DELAY_SAMPLES for i,x in
-            enumerate(triggers_edges) if x==1]
-
-
-def separate_sweep_phases(
-        test: str,
-        mech_val: float,
-        elec_val: float,
-        triggers_mech: np.ndarray,
-        triggers_elec: np.ndarray
-) -> classes.epochs.TriggersTrial:
-    """Generates `TriggersTrial` object from paired trigger data.
-    
-    # Error Handling
-    Raises `ValueError` if neither stimulation value is 0, as that
-    should not occur during either sweep.
-    """
-    # Determine the separation points between experimental phases:
-    if mech_val == 0:
-        start_itlv = triggers_mech[0]
-        start_rcvr = triggers_mech[
-            constants.INTERLEAVED_EPOCHS_FREQUENCY *
-            constants.INTERLEAVED_DURATION_SECONDS
-        ]
-        if elec_val == 0:
-            test_stim = 'control'
-            stim_value = 0
-        else:
-            test_stim = 'electrical'
-            stim_value = elec_val
-    elif elec_val == 0:
-        test_stim = 'mechanical'
-        stim_value = mech_val
-        if test == 'frequency':
-            first_mech_interleaved = math.floor(
-                mech_val*constants.SHORT_CONDITIONING_DURATION_SECONDS
-            )
-        elif test == 'amplitude':
-            first_mech_interleaved = math.floor(
-                constants.AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY*
-                constants.SHORT_CONDITIONING_DURATION_SECONDS
-            )
-        start_itlv = triggers_mech[first_mech_interleaved]
-        start_rcvr = triggers_mech[
-            first_mech_interleaved+
-            constants.INTERLEAVED_EPOCHS_FREQUENCY *
-            constants.INTERLEAVED_DURATION_SECONDS
-        ]
-    else:
-        # Raise error if neither stimulation value is 0:
-        raise ValueError(
-            "Neither stimulation value is 0, suggesting that stimulation was "
-            "performed incorrectly."
-        )
-    # Collect triggers into lists according to phase:
-    triggers_mech_cond = [x for x in triggers_mech if x<start_itlv]
-    triggers_elec_cond = [x for x in triggers_elec if x<start_itlv]
-    triggers_mech_itlv = [x for x in triggers_mech if x>=start_itlv and
-                        x<start_rcvr]
-    triggers_elec_itlv = [x for x in triggers_elec if x>=start_itlv and
-                        x<start_rcvr]
-    triggers_mech_rcvr = [x for x in triggers_mech if x>=start_rcvr]
-    triggers_elec_rcvr = [x for x in triggers_elec if x>=start_rcvr]
-    # Create and return a `TriggerSet` object:
-    return classes.epochs.TriggersTrial(
-        test,
-        test_stim,
-        stim_value,
-        triggers_mech_cond,
-        triggers_elec_cond,
-        triggers_mech_itlv,
-        triggers_elec_itlv,
-        triggers_mech_rcvr,
-        triggers_elec_rcvr
-    )
-
-
-############### *DETECTING AND SORTING SPIKE RESPONSES* ################
-
-def detect_spikes(
-        signal_data: np.ndarray,
-        triggers: list[int],
-        epoch_timing_ms: tuple[int | float, int | float],
-        tick_dt: float,
-        threshold: int | float,
-        phase: str,
-        stim_type: str
-) -> tuple[
-    list[classes.spikes.Spike],
-    list[classes.epochs.DataEpoch]
-]:
-    """Detects peaks above `threshold` in `signal_data`.
-    
-    Returns a list of `Spike` objects containing data about each
-    detected peak, and a list of `DataEpoch` objects which split the
-    signal into epochs for plotting.
-
     # Arguments
-    * `signal_data` -- signal in which to detect peaks
-    * `triggers` -- list of indices indicating when each stimulation
-    begins
-    * `epoch_timing_ms` -- tuple of two numeric values describing the
-    timing window during which spikes may occur. The first value of the
-    tuple represents start time and the second value stop time (both in
-    milliseconds after each stimulus onset).
-    * `tick_dt` -- number of samples per second in `signal_data`.
-    * `threshold` -- threshold for peak detection.
-    * `phase` -- experimental phase during which `signal_data` was
-    recorded.
-    * `stim_type` -- type of stimulation being delivered for each epoch.
-    Only one type of stimulation should be provided at a time; this
-    argument does not accept tuples or lists.
+    * `save_outputs` -- string or list of strings indicating clusters to
+    be saved:
+      * `'clusters'` -- cluster plots as PDF image.
+      * `'frs'` -- file_read_settings as JSON.
+      * `'epochs'` -- traces for each epoch as JSON.
+      * `'spikes'` -- spike data as JSON.
+      * `'all'` -- all of the above.
+    * `input_filenames` -- list of filenames which can identify FRS
+    files to read. They do not have to the FRS files themselves, but
+    can be other output files corresponding to the desired FRS files.
+    **However, they must be of the same version as the FRS files to be
+    read.**
+    * `input_folder` -- path to location where relevant outputs are
+    saved. For example, to read FRS files in the folder
+    `.\\outputs\\archive\\v1.1.0\\JSON\\file_read_settings\\`, set
+    `input_folder` to `'outputs\\archive\\v1.1.0'`.
+    * `show_plots` -- whether cluster plots should be displayed.
+
+    # Error Handling:
+    * If an updater does not exist matching the versino of any filename
+    in `input_filenames`, prints an error and skips that filename.
     """
-    # Convert `tick_dt` into milliseconds:
-    tick_dt_ms = tick_dt*constants.MILLISECONDS_PER_SECOND
-    # Define the epoch start and end time in samples, relative to each trigger:
-    epoch_start = int(epoch_timing_ms[0]/tick_dt_ms)
-    epoch_end = int(epoch_timing_ms[1]/tick_dt_ms)
-    # Create empty output lists:
-    data_epochs = []
-    spikes = []
-    for epoch_number, trigger in enumerate(triggers):
-        # Create `DataEpoch` object describing current epoch and add to
-        # `data_epochs` list:
-        trace = signal_data[trigger+epoch_start:trigger+epoch_end]
-        epoch = classes.epochs.DataEpoch(
-            trace,
-            epoch_timing_ms[0],
-            tick_dt_ms,
-            phase,
-            stim_type
+    # Count number of updated files:
+    updated_count = 0
+    for filename in input_filenames:
+        # Determine version of input file and pass to correct reader:
+        file_version = classes.VersionNumber(filename)
+        if file_version < classes.VersionNumber('2.0.0'):
+            frs = updater.read_frs_v1(filename, input_folder)
+        elif file_version >= utils.current_version:
+            # Skip loop if file is up-to-date (does not update count):
+            print(f"Up to date: {filename}")
+            continue
+        else:
+            # Skip loop if matching updater not implemented:
+            print(f"No updater for {file_version}: {filename}")
+            continue
+        # Set variables to be passed to other functions:
+        if save_outputs == 'all' or save_outputs == ['all']:
+            save_outputs = constants.OUTPUT_TYPES
+        try:
+            save_clusters = 'clusters' in save_outputs
+        except TypeError:
+            save_clusters = False
+        force_overwrite = False
+        # Read and process LabChart data:
+        recording = read_adicht(frs.filename, [frs.recording_segment])[0]
+        (spikes, epochs) = spikes_info(
+            recording,
+            frs.repetition,
+            frs.epoch_timing_ms,
+            frs.threshold_uV
         )
-        data_epochs.append(epoch)
-        # Detect peaks greater than `threshold` within current epoch and
-        # add to `spikes` list:
-        peaks, properties = signal.find_peaks(trace, threshold)
-        for i, peak in enumerate(peaks):
-            spikes.append(classes.spikes.Spike(
-                epoch_number,
-                peak*tick_dt_ms + epoch_timing_ms[0],
-                properties['peak_heights'][i]
-            ))
-    # Return populated output lists:
-    return spikes, data_epochs
+        filtered_spikes = filter_spikes(
+            spikes,
+            frs.spike_criteria,
+            frs.exclude_frequencies,
+            frs.exclude_amplitudes
+        )
+        # Draw cluster plots:
+        if show_plots or save_clusters:
+            plot_clusters(
+                filtered_spikes,
+                epochs,
+                frs.repetition,
+                frs.recording_segment,
+                frs.exclude_frequencies,
+                frs.exclude_amplitudes,
+                save_clusters
+            )
+            if not show_plots:
+                plt.close()
+        # Save specified JSON outputs:
+        if save_outputs:
+            common_inputs = [
+                frs.filename,
+                frs.repetition,
+                frs.recording_segment
+            ]
+            if 'frs' in save_outputs:
+                save_to_json(
+                    *common_inputs,
+                    'frs',
+                    force_overwrite,
+                    filename=frs.filename,
+                    epoch_timing_ms=frs.epoch_timing_ms,
+                    threshold_uV=frs.threshold_uV,
+                    spike_criteria=frs.spike_criteria,
+                    exclude_frequencies=frs.exclude_frequencies,
+                    exclude_amplitudes=frs.exclude_amplitudes
+                )
+            if 'epochs' in save_outputs:
+                save_to_json(
+                    *common_inputs,
+                    'epochs',
+                    force_overwrite,
+                    epochs=epochs,
+                    exclude_frequencies=frs.exclude_frequencies,
+                    exclude_amplitudes=frs.exclude_amplitudes
+                )
+            if 'spikes' in save_outputs:
+                save_to_json(
+                    *common_inputs,
+                    'spikes',
+                    force_overwrite,
+                    spikes=filtered_spikes
+                )
+        # Print completion message and update total updated files count:
+        print(f"UPDATED from {file_version}: {frs.filename}")
+        updated_count += 1
+    # Print total updated files count:
+    print(f"\nCOMPLETE: {updated_count} files updated.")
+    return
+
+
+def spikes_info(
+        recording: classes.recordings.Recording,
+        repetition: int,
+        epoch_timing_ms: tuple[int | float, int | float],
+        threshold_uV: int | float
+) -> tuple[list[classes.spikes.SpikesTrial], list[classes.epochs.EpochsTrial]]:
+    """Returns spikes and traces by epoch from extracted data.
+    
+    Applies signal processing (frequency filters) to extracted data,
+    separates it into epochs, and detects peaks above `threshold_uV`.
+    
+    # Arguments
+    * `recording` -- `Recording` object to be analysed.
+    * `epoch_timing_ms` -- tuple of two numeric values describing timing
+    window during which spikes may occur. The first value represents
+    start time and the second value stop time in milliseconds after
+    stimulus onset.
+    * `threshold_uV` -- threshold above which spikes should be detected,
+    in microvolts.
+
+    # Error Handling
+    * Upon encountering a comment which does not match the expected
+    format for frequency sweeps, prints an error message containing the
+    comment text and moves onto the next comment.
+    * Raises `AssertionError` if the number of epochs extracted from any
+    trial does not match the number of triggers present in that trial.
+    """
+    if recording.test == 'frequency':
+        return freq.spikes_info(
+            recording,
+            repetition,
+            epoch_timing_ms,
+            threshold_uV
+        )
+    # elif recording.test == "amplitude":
+    #     return ampl.spikes_info(
+    #         recording,
+    #         repetition,
+    #         epoch_timing_ms,
+    #         threshold_uV
+    #     )
+    # elif recording.test == "nine-one":
+    #     return nine.analyse_nineone()
+    # elif recording.test == "long-duration":
+    #     return long.analyse_longduration()
 
 
 def filter_spikes(
@@ -422,6 +265,24 @@ def filter_spikes(
         exclude_frequencies: list[int | float],
         exclude_amplitudes: list[int | float]
 ) -> list[classes.spikes.SpikesTrial]:
+    """Applies exclusion criteria to detected peaks.
+    
+    The purpose of this function is to isolate responses from a single
+    unit.
+
+    # Arguments
+    * `trials` -- list of `SpikesTrial` objects containing peaks to
+    filter.
+    * `criteria` -- dictionary with keys `'mechanical'` and
+    `'electrical'`, whose values are dictionaries themselves having keys
+    for 'latency_min_ms', 'latency_max_ms', 'size_min_uV', and
+    'size_max_uV'. Each of these keys has a numeric value specifying an
+    exclusion criteria, or None for no exclusion.
+    * `exclude_frequencies` and `exclude_amplitudes` -- if a trial has
+    test frequency or amplitude (respectively) whose value is in one or
+    both of these lists, the entire trial will be excluded.
+    """
+    # Convert `criteria` from `dict` to `SpikeCriteria`:
     try:
         spike_criteria_mech = classes.recordings.SpikeCriteria(
             **criteria['mechanical']
@@ -429,20 +290,25 @@ def filter_spikes(
         spike_criteria_elec = classes.recordings.SpikeCriteria(
             **criteria['electrical']
         )
-    # TODO Write error messages for both exceptions:
     except KeyError:
-        # `criteria` missing `'mechanical'` and/or `'electrical'` key(s)
+        print("`criteria` missing `'mechanical'` and/or `'electrical'` key(s)")
         raise
     except TypeError:
-        # `'mechanical'` and/or `'electrical'` don't match SpikeCriteria
+        print("`'mechanical'` and/or `'electrical'` don't match SpikeCriteria")
         raise
+    # Build new list of `SpikesTrial` objects:
     filtered_trials = []
     for trial in trials:
+        # Test for trial exclusion criteria:
         if (trial.test_frequency in exclude_frequencies or
             trial.test_amplitude in exclude_amplitudes):
             continue
+        # Test each experimental phase separately:
+        # `filtered_phases` will contain one list of `SpikesPhase`
+        # objects for each experimental phase
         filtered_phases = []
         for phase in [trial.conditioning, trial.interleaved, trial.recovery]:
+            # Apply spike exclusion criteria:
             filtered_spikes_mech = []
             filtered_spikes_elec = []
             for spike in phase.mechanical:
@@ -489,6 +355,8 @@ def filter_spikes(
                 filtered_spikes_mech,
                 filtered_spikes_elec
             ))
+        # Generate `SpikesTrial` object from filtered spikes:
+        # Each list in `filtered_phases` is passed as different argument
         filtered_trials.append(classes.spikes.SpikesTrial(
             trial.animal_id,
             trial.position,
@@ -496,25 +364,11 @@ def filter_spikes(
             trial.test_stim,
             trial.test_frequency,
             trial.test_amplitude,
+            trial.repetition,
             *filtered_phases
         ))
+    # Return complete list of filtered peaks:
     return filtered_trials
-
-
-def save_plot(
-        plot_type: str,
-        target_name: str
-) -> None:
-    # TODO write docstring
-    target_path = (f'{constants.PLOT_PATH}{plot_type}\\')
-    try:
-        plt.savefig(f'{target_path}{target_name}.pdf')
-    except FileNotFoundError:
-        pathlib.Path(target_path).mkdir(
-            parents=True,
-            exist_ok=True
-        )
-        plt.savefig(f'{target_path}{target_name}.pdf')
     
 
 def plot_clusters(
@@ -524,27 +378,49 @@ def plot_clusters(
         recording_segment: int,
         exclude_frequencies: list[int | float] = [],
         exclude_amplitudes: list[int | float] = [],
-        save_figures: bool = False,
-        filename: str | None = None
+        save_figures: bool = False
 ) -> None:
     """Plots peaks and traces by epoch to visualise spike detection.
+    
+    **Spikes from different recordings cannot be plotted together.**
+    This is primarily a conceit of the naming system for saved plots,
+    and is possible to implement. However, while this functionality
+    could be useful (e.g. to verify that units across tests are the
+    same), it is not useful for the current analysis and therefore is
+    not planned.
     
     # Error Handling
     * Prints an error message if the stimulus type of any given epoch is
     neither `'mechanical'` nor `'electrical'` but continues plotting
     other epochs. The error message contains information which may help
     to identify the probematic epoch.
-    * Raises `AssertionError` if `save_figures` set to `True` but one or
-    both of `filename` and `recording_segment` are not provided.
+    * Raises `AssertionError` if there is more than one unique value for
+    any of `animal_id`, `position`, or `test` present between `spikes`
+    and `epochs`.
     """
-    # `figure(0)` displays mechanical stimulation epochs
-    # `figure(1)` displays electrical stimulation epochs
-    # `zorder` has been set so that points appear above traces
+    # Top subplot displays mechanical stimulation epochs and lower epoch
+    # displays electrical stimulation epochs. `zorder` is set so points
+    # appear above traces.
 
-    # Plot detected peaks as scatterplots:
+    # Initialise variables for later:
     plt.figure(figsize=constants.FIGSIZE)
     max_voltage = 0
+    animal_id = utils.unique(
+        [spikes_trial.animal_id for spikes_trial in spikes] +
+        [epochs_trial.animal_id for epochs_trial in epochs]
+    )
+    position = utils.unique(
+        [spikes_trial.position for spikes_trial in spikes] +
+        [epochs_trial.position for epochs_trial in epochs]
+    )
+    test = utils.unique(
+        [spikes_trial.test for spikes_trial in spikes] +
+        [epochs_trial.test for epochs_trial in epochs]
+    )
+    colour_list = list(constants.PALETTE.values())
+    # Plot detected peaks as scatterplots:
     for spikes_trial in spikes:
+        # Map points from each stim type to correct subplot:
         phase_stims_dict = {
             1: [
                 spikes_trial.conditioning.mechanical,
@@ -564,18 +440,28 @@ def plot_clusters(
                     [x.time_ms for x in phase_stim],
                     [x.size_uV for x in phase_stim],
                     constants.CLUSTER_POINT_SIZE,
-                    constants.CLUSTER_COLOURS['peaks'],
+                    constants.PALETTE['black'],
                     zorder=1
                 )
                 try:
-                    max_voltage = max(max_voltage, max(x.size_uV for x in phase_stim))
+                    max_voltage = max(
+                        max_voltage,
+                        max(x.size_uV for x in phase_stim)
+                    )
                 except ValueError:
+                    # ValueError is raised if no spikes in a given phase
                     pass
     # Plot traces by epoch:
     for epochs_trial in epochs:
+        # Test for trial exclusion criteria:
+        # `filter_spikes()` only applies these to spikes, not epochs
         if (epochs_trial.test_frequency in exclude_frequencies or
             epochs_trial.test_amplitude in exclude_amplitudes):
             continue
+        # Initialise variables to identify trial if error is raised:
+        test_stim = epochs_trial.test_stim
+        test_frequency = epochs_trial.test_frequency
+        test_amplitude = epochs_trial.test_amplitude
         for epoch in epochs_trial.epochs:
             # If an epoch has an invalid stimulus type, try-except block
             # prints an error message and skips it:
@@ -584,31 +470,32 @@ def plot_clusters(
             except ValueError:
                 print(
                     "Epoch stimulus type not recognised.\n"
-                    f"    Animal ID: {spikes_trial.animal_id}\n"
-                    f"    Position: {spikes_trial.position}\n"
-                    f"    Test: {spikes_trial.test}\n"
-                    f"    Test Stimulus: {spikes_trial.test_stim}\n"
-                    f"    Test Frequency: {spikes_trial.test_frequency} Hz"
+                    f"    Animal ID: {animal_id}\n"
+                    f"    Position: {position}\n"
+                    f"    Test: {test}\n"
+                    f"    Test Stimulus: {test_stim}\n"
+                    f"    Test Frequency: {test_frequency} Hz"
                     "\n"
-                    f"    Test Amplitude: {spikes_trial.test_amplitude} μA"
+                    f"    Test Amplitude: {test_amplitude} μA"
                 )
                 continue
             # Plot figure:
+            phase_index = constants.EXPERIMENTAL_PHASES.index(epoch.phase)
+            colour = colour_list[phase_index+1] + '50'
             plt.subplot(2, 1, plot_id+1)
             plt.plot(
                 [i * epoch.tick_dt_ms + epoch.start_ms
                 for i, _x in enumerate(epoch.trace)],
                 epoch.trace,
-                c=constants.CLUSTER_COLOURS[f'{epoch.phase}_traces'],
+                c=colour,
                 linewidth=constants.CLUSTER_LINE_WIDTH,
                 zorder=0
                 )
+    # Prettify figure:
     plot_title = (
-        f'{spikes_trial.animal_id.upper()}-{spikes_trial.position} '
-        f'[{repetition}-{recording_segment}] ('
-        f'{constants.METADATA[spikes_trial.animal_id.upper()][spikes_trial.position]})'
+        f'{animal_id.upper()}-{position} [{repetition}-{recording_segment}] ('
+        f'{constants.METADATA[animal_id.upper()][position]})'
     )
-    plt.suptitle(plot_title)
     for plot_id in range(1,3):
         plt.subplot(2, 1, plot_id)
         plt.xlabel("Time (ms)")
@@ -622,106 +509,87 @@ def plot_clusters(
     plt.title("Mechanical")
     plt.subplot(2, 1, 2)
     plt.title("Electrical")
+    plt.suptitle(plot_title)
+    plt.tight_layout()
     # Save figures if specified:
     if save_figures:
-        assert filename is not None, (
-            "When saving figures, `filename`, `recording_segment`, and "
-            "`repetition` must all be provided."
+        plot_type = 'clusters'
+        target_name = utils.output_filename(
+            plot_type,
+            animal_id,
+            position,
+            repetition,
+            recording_segment,
+            test[0:4]
         )
-        save_plot(
-            'clusters',
-            f'{filename}-[{repetition}-{recording_segment}]'
+        utils.save_plot(
+            plot_type,
+            target_name
         )
     return
-
-
-################### *SAVING AND LOADING JSON FILES* ####################
-
-def convert_to_json_dict(obj) -> any:
-    """Converts `obj` to a format compatible with the JSON decoder.
-    
-    Searches recursively through `dicts`, `lists`, and `tuples` to
-    perform the following conversions:
-    * Items with the `__dict__` attribute are converted to `dict` using
-    `vars()` (once converted, any such items will also be searched).
-    * `range` objects are converted to `dict` with keys `start`, `stop`,
-    and `step`.
-    * 1-dimensional `ndarray` objects are converted to `list` and
-    multi-dimensional `ndarray` objects are converted to nested `list`s.
-    Other NumPy types are not converted - note that NumPy `float` is an
-    instance of `float` and is compatible with the JSON decoder, but
-    NumPy `int` is not an instance of `int` and is therefore
-    incompatible with the JSON decoder.
-
-    Other types which are not compatible with the JSON decoder are not
-    converted, nor will they raise an error.
-    """
-    if isinstance(obj, dict):
-        return {key: convert_to_json_dict(value) for key, value in obj.items()}
-    elif isinstance(obj, (tuple, list, np.ndarray)):
-        return [convert_to_json_dict(x) for x in obj]
-    elif isinstance(obj, range):
-        return {
-            'start': obj.start,
-            'stop': obj.stop,
-            'step': obj.step
-        }
-    elif hasattr(obj, '__dict__'):
-        return convert_to_json_dict(vars(obj))
-    else:
-        return obj
 
 
 def save_to_json(
         input_filename: str,
         repetition: int,
-        recording_index: int,
-        save_type: str,
+        recording_segment: int,
+        json_type: str,
         force_overwrite: bool = False,
         **kwargs
 ) -> None:
     """Saves a list of objects as a JSON file.
     
     # Arguments
-    * `file_path` -- path to directory where JSON file is to be saved.
     * `input_filename` -- name of LabChart file from which data was
     obtained.
+    * `repetition` - which repetition of its test the file is.
     * `recording_segment` -- index of recording segment from which data
     was obtained, relative to the entire file at `input_filename`.
-    entire file.
+    * `json_type` -- category of JSON file to save (determines save path
+    and included in output filename).
     * `force_overwrite` -- whether to overwrite an existing file at the
     target path without asking. If set to `True`, an existing file will
     be overwritten without manual confirmation. If set to `False`, user
     will be asked to confirm or reject overwrite if a file exists at the
     target path.
-    * **kwargs -- data to include in the saved JSON file.
-        * Any objects which have __dict__ attribute will be expanded
+    * `**kwargs` -- data to include in the saved JSON file.
 
     # Error Handling
     Raises `TypeError` if any values in `kwargs` contain items which are
     not JSON serialisable after applying `convert_to_json_dict()`.
     """
     # Construct target name and path for JSON file:
-    file_path = (
-        constants.JSON_PATHS['rootpath'] +
-        constants.JSON_PATHS[save_type]['path']
-    )
-    output_suffix = constants.JSON_PATHS[save_type]['suffix']
-    filename = (
-        f'{input_filename}-[{repetition}-{recording_index}]-'
-        f'{output_suffix}-{constants.VERSION}.json'
-    )
+    try:
+        file_path = (constants.SAVE_PATHS['json_root'] +
+                    constants.SAVE_PATHS[json_type])
+    except KeyError:
+        file_path = (constants.SAVE_PATHS['json_root'] +
+                    f'{json_type}\\')
+    input_info = classes.recordings.FilenameInfo.from_filename(input_filename)
+    filename = utils.output_filename(
+        json_type,
+        input_info.animal_id,
+        input_info.position,
+        repetition,
+        recording_segment,
+        input_info.test[0:4]
+    ) + '.json'
     # Construct dict to save as JSON:
-    output_dict = {'version': constants.VERSION, 'repetition': repetition}
+    output_dict = {
+        'json_type': json_type,
+        'version': str(utils.current_version),
+        'repetition': repetition,
+        'recording_segment': recording_segment
+    }
     for key, value in kwargs.items():
-        output_dict[key] = convert_to_json_dict(value)
+        output_dict[key] = utils.convert_to_json_dict(value)
     # Save to JSON and print success/failure message:
     try:
-        confirm_save(file_path, filename, output_dict, force_overwrite)
+        utils.confirm_save(file_path, filename, output_dict, force_overwrite)
     except FileNotFoundError:
         # Make directories if they don't exist
         pathlib.Path(file_path).mkdir(parents=True, exist_ok=True)
-        confirm_save(file_path, filename, output_dict, force_overwrite)
+        utils.confirm_save(file_path, filename, output_dict, force_overwrite)
     except TypeError:
         # Raise error if `output_dict` contains non-JSON serialisable
         # objects:
@@ -729,145 +597,245 @@ def save_to_json(
     return
 
 
-def confirm_save(
-        file_path: str,
-        filename: str,
-        output_dict: dict[str, any],
-        force_overwrite: bool = False
-) -> None:
-    """Asks for confirmation before overwriting existing JSON file.
+############################# *main_part2* #############################
 
-    Call this function as a final step to save JSON files.
+def spikes_table(load_df_json: bool | str = False) -> pd.DataFrame:
+    """Loads or builds DataFrame summary of saved spikes data.
+
+    If a save file is found, a new DataFrame will not be generated (i.e.
+    the loaded DataFrame will not be updated with new values).
+
+    # Arguments
+    * `load_df_json` -- bool or string indicating whether the function
+    should check for an existing save.
+      * `True` or `'current'` -- look for save file matching current
+      version.
+      * `'latest'` -- if any save files exist, load save with latest
+      compatible version.
+      * `'recent'` -- if any save files exist, load save with latest
+      compatible version not exceeding current version.
+      * A specific version number can be supplied as `str` and the
+      function will only check for a save matching that version. If no
+      save is found but a save matching the current version exists, the
+      current save will be overwritten by a newly generated spikes_df.
+      * `False` -- do not look for an existing save. As above, if a save
+      matching the current version exists, it will be overwritten by a
+      newly generated spikes_df.
+
+    # Error Handling
+    * If no file is matching `load_df_json` is found, or if
+    `load_df_json` does not match any of the listed formats, a new
+    DataFrame will be generated (overwriting a saved file if one exists
+    for the current version).
     """
-    # Construct target path for JSON file:
-    save_file = file_path + filename
-    if force_overwrite:
-        # Do not ask for confirmation before overwriting if a file
-        # exists at the target path:
-        json.dump(output_dict, open(save_file, 'w'), indent=4)
-        saved = True
-    else:
-        try:
-            # Try to create a new file to save to at the target path:
-            json.dump(output_dict, open(save_file, 'x'), indent=4)
-            saved = True
-        except FileExistsError:
-            # If file already exists at target path, ask user for manual
-            # confirmation before overwriting:
-            confirm_overwrite = input(
-                "The file you are trying to save to already exists. Do you "
-                "want to overwrite it? \n"
-                "Enter [Y/y] to overwrite, enter anything else or press "
-                "[Escape] to skip."
-            )
-            # Regex checks if user input contains only `Y` or `y`
-            if re.search(r"^(?i:y)$", confirm_overwrite):
-                json.dump(output_dict, open(save_file, 'w'), indent=4)
-                saved = True
-            else:
-                saved = False
-    # Notify user whether file was saved or not:
-    if saved:
-        print(f"SUCCESS: `{filename}` saved to `{file_path}`")
-    else:
-        print(f"FAILURE: `{filename}` skipped")
-    return
-
-
-def get_json_filenames(json_type: str) -> tuple[list[str], list[str]]:
-    # TODO write docstring
-    current_version = classes.VersionNumber(constants.VERSION)
-    json_path = (
-        constants.JSON_PATHS['rootpath'] +
-        constants.JSON_PATHS[json_type]['path']
-    )
-    json_filenames = [
-        f for f in next(walk(json_path), (None, None, []))[2]
-    ]
-    incompatible_files = []
-    for filename in json_filenames:
-        file_version = classes.VersionNumber(filename)
-        if file_version.major != current_version.major:
-            incompatible_files.append(filename)
-            print(f"{filename}: EXCLUDE (incompatible version)")
-        elif file_version.minor != current_version.minor:
-            print(f"{filename}: INCLUDE (warning: minor version mismatch)")
-        else:
-            print(f"{filename}: INCLUDE")
-    for filename in incompatible_files:
-        json_filenames.remove(filename)
-    return (json_filenames, incompatible_files)
-
-
-def load_spikes_trials(
-        json_spike_filenames: list[str]
-) -> list[tuple[list[classes.spikes.SpikesTrial], int]]:
-    # TODO write docstring
-    all_trials = []
-    for spike_filename in json_spike_filenames:
-        # Construct path from which JSON file is to be read:
-        save_file = (
-            constants.JSON_PATHS['rootpath'] +
-            constants.JSON_PATHS['spikes']['path'] +
-            spike_filename
-        )
-        # Read JSON file and convert to list of `SpikesTrial` objects:
-        spikes_dict = json.load(open(save_file))
-        spikes = [classes.spikes.SpikesTrial.from_dict(dictionary)
-                  for dictionary in spikes_dict['spikes']]
-        all_trials.append((spikes, spikes_dict['repetition']))
-    return all_trials
-
-
-def tabulate_spikes(
-        spikes: list[list[classes.spikes.SpikesTrial]]
-) -> pd.DataFrame:
-    # TODO write docstring
-    spikes_df = pd.DataFrame()
-    for (list, repetition) in spikes:
-        for trial in list:
-            spikes_df = pd.concat(
-                [spikes_df, trial.to_df(repetition)],
-                ignore_index=True
-            )
-    return typed_dataframe(
-        spikes_df,
-        constants.ALL_SPIKES_TYPES,
-        constants.ALL_SPIKES_CATEGORIES
-    )
-
-
-def spikes_table(load_df_json: bool = True) -> pd.DataFrame:
-    # TODO write docstring
-    df_json_path = (
-        constants.JSON_PATHS['rootpath'] +
-        constants.JSON_PATHS['spikes_df']['path']
-    )
-    df_json_name = (
-        constants.JSON_PATHS['spikes_df']['filename'] +
-        f'-{constants.VERSION}.json'
-    )
-
+    # Build path and name for current version:
+    # If a new DataFrame must be generated, it will be saved here. In
+    # additional, if `load_df_json` is `True` or `'current'`, only this
+    # location will be checked for an existing file.
+    df_json_path = (constants.SAVE_PATHS['json_root'] +
+                    constants.SAVE_PATHS['spikes_df'])
+    # Define `spikes_df` so whether it is loaded can be checked later:
+    spikes_df = None
+    # Try to load `spikes_df` from file:
     if load_df_json:
+        print("Trying to load `spikes_df` from file...")
         try:
+            if load_df_json is True or load_df_json == 'current':
+                # Build filename for current version:
+                df_json_name = (constants.SPIKES_DF_JSON_NAME +
+                                f'_{constants.VERSION}.json')
+            elif load_df_json == 'latest' or load_df_json == 'recent':
+                # Get list of compatible filenames:
+                (compatible, _incompatible) = utils.get_json_filenames(
+                    'spikes_df'
+                )
+                # Get list of versions, preserving index in `compatible`:
+                versions = [
+                    (i, classes.VersionNumber(filename)) for (i, filename) in
+                    enumerate(compatible)
+                ]
+                # Get index and version of latest version number:
+                latest = max(versions, key=lambda x: x[1])
+                if load_df_json == 'recent':
+                    # Cull versions later than current:
+                    while latest[1] > utils.current_version:
+                        versions.remove(latest)
+                        latest = max(versions, key=lambda x: x[1])
+                # Find filename at index of latest compatible version:
+                df_json_name = compatible[latest[0]]
+            else:
+                # Build filename for specified version:
+                df_json_name = (
+                    constants.SPIKES_DF_JSON_NAME +
+                    f'_{classes.VersionNumber(load_df_json)}.json'
+                )
+            # Attempt to load JSON at target filename:
             df_json = json.load(open(df_json_path+df_json_name))
             spikes_df = pd.DataFrame.from_dict(df_json)
-            print(f"`spikes_df` loaded from file: {df_json_name}")
-            print('\n'.join([unit_id for unit_id in spikes_df['Unit ID'].unique()]))
-            return spikes_df
+            print(f"\n`spikes_df` loaded from file: {df_json_name}")
+        except (IndexError, OSError):
+            print("Unable to load `spikes_df`: no compatible file.\n")
+        except ValueError:
+            print("Unable to load `spikes_df`: invalid `load_df_json`.\n")
+    if spikes_df is None:
+        # If spikes_df was not loaded, build new DataFrame:
+        print("Building `spikes_df` from saved spikes...")
+        (spikes_files, _incompatible_files) = utils.get_json_filenames('spikes')
+        all_trials = utils.load_spikes_trials(spikes_files)
+        spikes_df = utils.tabulate_spikes(all_trials)
+        print("\n`spikes_df` built.")
+        # Save new DataFrame:
+        df_json_name = (constants.SPIKES_DF_JSON_NAME +
+                        f'_{constants.VERSION}.json')
+        try:
+            spikes_df.to_json(df_json_path+df_json_name,orient='records')
+            print("\n`spikes_df` saved.")
         except OSError:
-            pass
-
-    print("Building `spikes_df` from saved spikes...")
-    (spikes_files, _incompatible_files) = get_json_filenames('spikes')
-    all_trials = load_spikes_trials(spikes_files)
-    spikes_df = tabulate_spikes(all_trials)
-    try:
-        spikes_df.to_json(df_json_path+df_json_name,orient='records')
-    except OSError:
-        pathlib.Path(df_json_path).mkdir(
-            parents=True,
-            exist_ok=True
-        )
-        spikes_df.to_json(df_json_path+df_json_name,orient='records')
+            pathlib.Path(df_json_path).mkdir(
+                parents=True,
+                exist_ok=True
+            )
+            spikes_df.to_json(df_json_path+df_json_name,orient='records')
+    # Print completion message and return DataFrame:
+    units = spikes_df['Unit ID'].unique()
+    print(f'Contains {len(units)} units:')
+    print('\n'.join([unit_id for unit_id in units]))
     return spikes_df
+
+
+def calculate_ssr(
+        spikes_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Calculates mean spike rate per stimulation from saved spike data.
+    
+    For each trial in `spikes_df`, calculates mean spike rate per
+    stimulation separated by experimental phase and stimulation type.
+    Other factors, such as if spikes are uniformly distributed, are not
+    considered.
+
+    # Arguments
+    * `spikes_df` -- DataFrame containing spike data.
+    """
+    freq_spikes = spikes_df.loc[spikes_df['Test'] == 'frequency']
+    # ampl_spikes = spikes_df.loc[spikes_df['Test'] == 'amplitude']
+    # nine_spikes = spikes_df.loc[spikes_df['Test'] == 'nine-one']
+    # long_spikes = spikes_df.loc[spikes_df['Test'] == 'long-duration']
+    freq_ssr = (freq.simple_spikerate_df(freq_spikes) if not freq_spikes.empty
+                else pd.DataFrame())
+    # ampl_ssr = (ampl.simple_spikerate_df(freq_spikes) if not ampl_spikes.empty
+    #             else pd.DataFrame())
+    # nine_ssr = (nine.simple_spikerate_df(freq_spikes) if not nine_spikes.empty
+    #             else pd.DataFrame())
+    # long_ssr = (long.simple_spikerate_df(freq_spikes) if not long_spikes.empty
+    #             else pd.DataFrame())
+    return freq_ssr
+    # return pd.concat([freq_ssr, ampl_ssr, nine_ssr, long_ssr])
+
+
+def plot_combined_ssr(
+        ssr_df: pd.DataFrame,
+        plot_title: str,
+        save_figure: bool = False,
+        filename: str | None = None
+) -> None:
+    """Plots calculated mean spike rates by experimental phase."""
+    try:
+        # Determine correct module to handle plotting:
+        test = utils.unique(ssr_df['Test'])
+        if test == 'frequency':
+            ssr_plot_df = freq.simple_spikerate_plotdf(ssr_df)
+            plot_ssr = freq.plot_single_ssr
+        # elif test == 'amplitude':
+        #     ssr_plot_df = ampl.simple_spikerate_plotdf(ssr_df)
+        #     plot_ssr = ampl.plot_single_ssr
+        # elif test == 'nine-one':
+        #     ssr_plot_df = nine.simple_spikerate_plotdf(ssr_df)
+        #     plot_ssr = nine.plot_single_ssr
+        # elif test == 'long-duration':
+        #     ssr_plot_df = long.simple_spikerate_plotdf(ssr_df)
+        #     plot_ssr = long.plot_single_ssr
+        else:
+            raise KeyError(f"Invalid `Test` value: {test}.")
+        # Plot subplots:
+        f, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=constants.FIGSIZE)
+        plot_ssr(
+            ssr_plot_df,
+            'Conditioning',
+            ax1
+        )
+        plot_ssr(
+            ssr_plot_df,
+            'Interleaved',
+            ax2
+        )
+        plot_ssr(
+            ssr_plot_df,
+            'Recovery',
+            ax3
+        )
+        # Prettify figure:
+        plt.suptitle(plot_title)
+        plt.tight_layout()
+        # Save figure if specified:
+        if save_figure:
+            if not filename:
+                filename = plot_title
+            filename = filename.lower().replace(' ', '-').replace('_', '-')
+            utils.save_plot(
+                'ssr',
+                f"ssr_{filename}_{test[0:4]}_{utils.current_version}"
+            )
+        return
+    except AssertionError:
+        # TODO generate four SSR plots together, one for each test
+        raise NotImplementedError("Plotting multiple test types together.")
+
+
+def plot_combined_raster(
+        spikes_df: pd.DataFrame,
+        save_figure: bool = False
+ ) -> None:
+    """Plots rasters for all recordings.
+    
+    A separate plot is generated for each test type, separated into
+    three subplots by experimental phase, and with each trial on a
+    separate row.
+    """
+    for test in spikes_df['Test'].unique():
+        # Separate DataFrame by test type:
+        test_df = spikes_df.loc[spikes_df['Test'] == test]
+        plt.figure(figsize=constants.FIGSIZE)
+        # Determine correct module:
+        if test == 'frequency':
+            plot_split = 'Test Frequency'
+            plot_raster = freq.plot_single_raster
+            ylabel_suffix = ' Hz'
+        # elif test == 'amplitude':
+        #     plot_split = 'Test Amplitude'
+        #     plot_raster = ampl.plot_single_raster
+        #     ylabel_suffix = ' μA'
+        # else:
+        #     plot_split = 'Test Stimulus'
+        #     plot_raster = freq.plot_single_raster
+        #     ylabel_suffix = ''
+        # Separate, order, and plot subplots:
+        plot_names = sorted(test_df[plot_split].unique())
+        plots_count = len(plot_names)
+        for plot_id, plot_name in enumerate(plot_names):
+            plot_df = test_df.loc[test_df[plot_split] == plot_name]
+            plt.subplot(plots_count, 1, plot_id+1)
+            plot_raster(
+                plot_df,
+                'Trial ID'
+            )
+            plt.ylabel(f'{plot_name}{ylabel_suffix}')
+        # Prettify figure:
+        plt.suptitle(f"Rasters by {plot_split.lower()} and trial")
+        plt.tight_layout()
+        # Save figure if specified:
+        if save_figure:
+            utils.save_plot(
+                'rasters',
+                f"rasters_{test[0:4]}_[{plot_split}]-[Trial ID]_{utils.current_version}"
+            )
+    return

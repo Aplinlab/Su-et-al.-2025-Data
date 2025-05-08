@@ -2,6 +2,7 @@
 """
 
 import re
+import typing
 
 from hff_analysis import constants
 
@@ -28,3 +29,99 @@ class VersionNumber:
             raise ValueError(
                 f"Unexpected error parsing version number ({version_str})."
             ) from e
+        
+    def __str__(self):
+        return f'v{self.major}.{self.minor}.{self.patch}'
+        
+    def __lt__(self, other: typing.Self) -> bool:
+        if self.major < other.major:
+            return True
+        elif (
+            self.major == other.major and
+            self.minor < other.minor
+        ):
+            return True
+        elif (
+            self.major == other.major and
+            self.minor == other.minor and
+            self.patch < other.patch
+        ):
+            return True
+        else:
+            return False
+
+    def __le__(self, other: typing.Self) -> bool:
+        if self.major < other.major:
+            return True
+        elif (
+            self.major == other.major and
+            self.minor < other.minor
+        ):
+            return True
+        elif (
+            self.major == other.major and
+            self.minor == other.minor and
+            self.patch <= other.patch
+        ):
+            return True
+        else:
+            return False
+ 
+    def __eq__(self, other: typing.Self) -> bool:
+        return (
+            self.major == other.major and
+            self.minor == other.minor and
+            self.patch == other.patch
+        )
+ 
+    def __ne__(self, other: typing.Self) -> bool:
+        return (
+            self.major != other.major or
+            self.minor != other.minor or
+            self.patch != other.patch
+        )
+
+    def __gt__(self, other: typing.Self) -> bool:
+        if self.major > other.major:
+            return True
+        elif (
+            self.major == other.major and
+            self.minor > other.minor
+        ):
+            return True
+        elif (
+            self.major == other.major and
+            self.minor == other.minor and
+            self.patch > other.patch
+        ):
+            return True
+        else:
+            return False
+
+    def __ge__(self, other: typing.Self) -> bool:
+        if self.major > other.major:
+            return True
+        elif (
+            self.major == other.major and
+            self.minor > other.minor
+        ):
+            return True
+        elif (
+            self.major == other.major and
+            self.minor == other.minor and
+            self.patch >= other.patch
+        ):
+            return True
+        else:
+            return False
+        
+    def iscompatible(
+            self,
+            other: typing.Self
+    ) -> tuple[bool, str]:
+        if self.major != other.major:
+            return (False, "incompatible")
+        elif self.minor != other.minor:
+            return (True, "compatible (minor version mismatch)")
+        else:
+            return (True, "compatible")

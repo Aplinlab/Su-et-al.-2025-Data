@@ -1,11 +1,84 @@
-"""Classes used for reading `.adicht` files and storing data from them
-prior to separation into epochs and peak detection.
+"""Classes for reading LabChart files and storing extracted data.
+
+# Classes
+* `FileNameInfo` -- data extracted from LabChart filename.
+* `SpikeCriteria` -- set of criteria for isolating responses.
+* `FileReadSettings` -- stores all variables used in `main_part1`.
 """
 
 from numpy import ndarray
+import re
+
+from hff_analysis import constants
+from . import base
+
+
+# Regex pattern for parsing filenames:
+# It is compiled here once, rather than within a function, to reduce
+# unnecessary computations.
+adicht_regex_pattern = re.compile(constants.ADICHT_FILENAME_REGEX)
+
+
+class FilenameInfo:
+    """Information about a trial present in LabChart filename.
+    
+    # Attributes
+    * `name` -- LabChart file name without file extension.
+    * `extension` -- LabChart file extension.
+    * `animal_id` -- three letters followed by two numbers identifying animal.
+    * `position` -- index of recording position for animal.
+    * `test` -- type of test performed during trial.
+
+    # Methods
+    * `from_filename` -- defines instance from LabChart filename.
+    """
+    def __init__(
+            self,
+            name: str,
+            extension: str,
+            animal_id: str,
+            position: int,
+            test: str
+    ):
+        self.name = name
+        self.extension = extension
+        self.animal_id = animal_id
+        self.position = position
+        self.test = test
+
+    @classmethod
+    def from_filename(cls, filename: str):
+        # Parse the input filename:
+        m = adicht_regex_pattern.search(filename)
+        try:
+            extension = (m.group('extension') if m.group('extension') else
+                         '.adicht')
+            testcode = m.group('testcode')
+            return cls(
+                m.group('name'),
+                extension,
+                m.group('a_id'),
+                int(m.group('pos')),
+                constants.TEST_CODES[testcode]
+            )
+        except AttributeError as e:
+            # AttributeError is raised if m is None (i.e. if regex pattern
+            # didn't match)
+            raise ValueError(
+                f"Filename does not match the expected format ({filename})."
+            ) from e
+        except KeyError as e:
+            # KeyError raised if `[test_code]` not found in
+            # `constants.TEST_CODES`
+            raise KeyError(f"Unable to match test type ({filename}).") from e
 
 
 class SpikeCriteria:
+    """Criteria used to isolate responses from detected peaks.
+    
+    These four criteria constrain peaks to a rectangular box when
+    plotted as voltage vs time.
+    """
     def __init__(
             self,
             latency_min_ms: int | float | None,
@@ -20,34 +93,40 @@ class SpikeCriteria:
     
 
 class FileReadSettings:
-    """To reproduce a saved state in `main_part1.ipynb`:
+    """Stores all variables used during `main_part1`.
 
+    Can be used to reproduce an earlier run.
+    
+    To reproduce a saved state in `main_part1.ipynb`:
     0. Load a JSON file containing a `FileReadSettings` object using
-    `frs = FileReadSettings(**json.load(open(file_path)))`.
+    `frs = FileReadSettings.from_dict(json.load(open(file_path)))`.
     1. Run STEP 0 (import the `hff_analysis` module).
-    2. In STEP 1, set `filename = frs.filename` and `data_segments =
-    [frs.recording_segment]`, then run STEP 1.
-    3. In STEP 2, set `recording_id = 0`, `threshold_uV =
-    frs.threshold_uV`, and `epoch_timing_ms = frs.epoch_timing_ms`, then
+    2. In STEP 1, set `filename = frs.filename`, `repetition =
+    frs.repetition` and `data_segments = [frs.recording_segment]`, then
+    run STEP 1.
+    3. In STEP 2, set `recording_id = 0`, `epoch_timing_ms =
+    frs.epoch_timing_ms`, and `threshold_uV = frs.threshold_uV`, then
     run STEP 2.
+    4. In STEP 3, set `spike_criteria = frs.spike_criteria`,
+    `exclude_frequencies = frs.exclude_frequencies`, and
+    `exclude_amplitudes = frs.exclude_amplitudes`, then run STEP 3.
     """
-    # TODO Update docstring to include information about
-    # TODO  `spike_criteria`, `exclude_frequencies`, and
-    # TODO  `exclude_amplitudes`
     # TODO Write a function which does the steps described
     def __init__(
             self,
-            version: str,
+            version: base.VersionNumber,
             filename: str,
+            repetition: int,
             recording_segment: int,
             epoch_timing_ms: tuple[int | float, int | float],
             threshold_uV: int | float,
-            spike_criteria: dict[str, SpikeCriteria],
+            spike_criteria: dict[str, dict[str, int | float | None]],
             exclude_frequencies: list[int | float] | None = None,
             exclude_amplitudes: list[int | float] | None = None
     ):
         self.version = version
         self.filename = filename
+        self.repetition = repetition
         self.recording_segment = recording_segment
         self.epoch_timing_ms = epoch_timing_ms
         self.threshold_uV = threshold_uV
@@ -63,25 +142,23 @@ class FileReadSettings:
 
     @classmethod
     def from_dict(cls, dictionary: dict[str, any]):
-        exclude_frequencies = dictionary.get('exclude_frequencies', [])
-        exclude_amplitudes = dictionary.get('exclude_amplitudes', [])
         return cls(
-            dictionary['version'],
+            base.VersionNumber(dictionary['version']),
             dictionary['filename'],
+            dictionary['repetition'],
             dictionary['recording_segment'],
             dictionary['epoch_timing_ms'],
             dictionary['threshold_uV'],
-            {key: SpikeCriteria(**value) for key, value in
-             dictionary['spike_criteria'].items()},
-            exclude_frequencies,
-            exclude_amplitudes
+            dictionary['spike_criteria'],
+            dictionary['exclude_frequencies'],
+            dictionary['exclude_amplitudes']
         )
 
 
 class Marker:
     """Data from a comment for separating a recording into trials.
 
-    # Properties
+    # Attributes
     * `comment` -- Text of the comment.
     * `start_sample` -- Sample on which the trial starts, relative to
     beginning of trimmed signal.
@@ -98,7 +175,7 @@ class Recording:
     """A class for variables related to a recording segment within a
     `.adicht` file:
 
-    # Properties
+    # Attributes
     * `animal_id` -- Animal-specific identifier made up of three letters
     followed by two digits.
     * `position` -- Integer indicating the position from which the

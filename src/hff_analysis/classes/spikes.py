@@ -1,4 +1,10 @@
-"""Classes for storing data about detected spikes."""
+"""Classes for storing data about detected spikes.
+
+# Classes
+* `Spike` -- data describing a single spike.
+* `SpikesPhase` -- describes spikes making up an experimental phase.
+* `SpikesTrial` -- data for all spikes in a recording trial.
+"""
 
 import pandas as pd
 
@@ -6,7 +12,16 @@ from hff_analysis import constants
 
 
 class Spike:
-    """Data to describe a single spike."""
+    """Data to describe a single spike.
+    
+    # Attributes
+    * `epoch_number` -- index of epoch within phase and stim type.
+    * `time_ms` -- latency in milliseconds.
+    * `size_uV` -- amplitude in microvolts.
+
+    # Methods
+    * `to_df` -- reformats spike data as DataFrame row.
+    """
     def __init__(
             self,
             epoch_number: int,
@@ -38,13 +53,13 @@ class Spike:
         phase_id = '_'.join([trial_id, phase, epoch_stim])
         epoch_id = '_'.join([phase_id, str(self.epoch_number)])
         return pd.DataFrame([[
-            animal_id.upper(),
+            animal_id,
             sex,
             position,
             unit_id,
             unit_type,
-            test.capitalize(),
-            test_stim.capitalize(),
+            test,
+            test_stim,
             test_frequency,
             test_amplitude,
             test_id,
@@ -62,8 +77,19 @@ class Spike:
 
 
 class SpikesPhase:
-    """Collection of spikes making up an experimental phase, including
-    mechanical and/or electrical stimulation.
+    """Collection of spikes making up an experimental phase.
+
+    Includes mechanical and electrical stimulation as separate lists.
+
+    # Attributes
+    * `epochs_mech` -- number of mechanical stimulation epochs.
+    * `epochs_elec` -- number of electrical stimulation epochs.
+    * `mechanical` -- spike responses to mechanical stimulation.
+    * `electrical` -- spike responses to electrical stimulation.
+
+    # Methods
+    * `from_dict` -- defines instance from dictionary entries.
+    * `to_df` -- reformats data to DataFrame.
     """
     def __init__(
             self,
@@ -121,7 +147,7 @@ class SpikesPhase:
             mech_df = pd.concat(
                 [spike.to_df(
                     *common_inputs,
-                    'Mechanical',
+                    'mechanical',
                     self.epochs_mech
                 ) for spike in self.mechanical],
                 ignore_index=True
@@ -133,7 +159,7 @@ class SpikesPhase:
             elec_df = pd.concat(
                 [spike.to_df(
                     *common_inputs,
-                    'Electrical',
+                    'electrical',
                     self.epochs_elec
                 ) for spike in self.electrical],
                 ignore_index=True
@@ -145,7 +171,11 @@ class SpikesPhase:
 
 
 class SpikesTrial:
-    """Data describing every detected spike for a recording trial."""
+    """Data describing every detected spike for a recording trial.
+
+    # Methods
+    * `from_dict` -- defines instance from dictionary entries.
+    * `to_df` -- reformats data to DataFrame."""
     def __init__(
             self,
             animal_id: str,
@@ -154,12 +184,14 @@ class SpikesTrial:
             test_stim: str,
             test_frequency: float,
             test_amplitude: float,
+            repetition: int,
             spikes_cond: SpikesPhase,
             spikes_itlv: SpikesPhase,
             spikes_rcvr: SpikesPhase
     ):
         self.animal_id = animal_id
         self.position = position
+        self.repetition = repetition
         self.test = test
         self.test_stim = test_stim
         self.test_frequency = test_frequency
@@ -177,12 +209,13 @@ class SpikesTrial:
             dictionary['test_stim'],
             dictionary['test_frequency'],
             dictionary['test_amplitude'],
+            dictionary['repetition'],
             SpikesPhase.from_dict(dictionary['conditioning']),
             SpikesPhase.from_dict(dictionary['interleaved']),
             SpikesPhase.from_dict(dictionary['recovery'])
         )
     
-    def to_df(self, repetition: int) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         sex = constants.METADATA[self.animal_id.upper()]['sex']
         unit_type = constants.METADATA[self.animal_id.upper()][self.position]
         
@@ -196,7 +229,7 @@ class SpikesTrial:
         trial_id = '_'.join([
             unit_id,
             test_id,
-            str(repetition)
+            str(self.repetition)
         ])
         common_inputs = [
             self.animal_id,
@@ -209,7 +242,7 @@ class SpikesTrial:
             self.test_frequency,
             self.test_amplitude,
             test_id,
-            repetition,
+            self.repetition,
             trial_id
         ]
         df = pd.concat(
@@ -217,9 +250,9 @@ class SpikesTrial:
                 *common_inputs,
                 phase_str
             ) for phase_obj, phase_str in {
-                self.conditioning: 'Conditioning',
-                self.interleaved: 'Interleaved',
-                self.recovery: 'Recovery'
+                self.conditioning: 'conditioning',
+                self.interleaved: 'interleaved',
+                self.recovery: 'recovery'
             }.items()],
             ignore_index=True
         )

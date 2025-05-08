@@ -1,9 +1,21 @@
-"""Classes for separating recording trials into epochs and storing
-signals which have been separated into epochs.
+"""Classes for splitting trials into epochs and storing epoch traces.
+
+# Classes
+* `DataEpoch` -- data describing a single epoch trace.
+* `EpochsTrial` -- data describing all epochs in a recording trial.
+* `TriggersTrial` -- list of trigger timings for a recording trial.
 """
 
 class DataEpoch:
-    """Data necessary to plot the trace for an epoch."""
+    """Data necessary to plot the trace for an epoch.
+    
+    # Attributes
+    * `trace` -- recorded signal as list of voltage values.
+    * `start_ms` -- start time of trace relative to epoch trigger.
+    * `tick_dt_ms` -- duration of a sampling tick in milliseconds.
+    * `phase` -- experimental phase to which epoch belongs.
+    * `stimulus` -- stimulus modality delivered during epoch.
+    """
     def __init__(
             self,
             trace: list[float],
@@ -20,7 +32,11 @@ class DataEpoch:
     
 
 class EpochsTrial:
-    """Collection of `DataEpoch` objects for a recording trial."""
+    """Data describing epochs for a recording trial.
+
+    # Methods
+    * `from_dict` -- defines instance from dictionary entries.
+    """
     def __init__(
             self,
             animal_id: str,
@@ -29,6 +45,7 @@ class EpochsTrial:
             test_stim: str,
             test_frequency: int | float,
             test_amplitude: int | float,
+            repetition: int,
             epochs: list[DataEpoch]
     ):
         self.animal_id =  animal_id
@@ -37,6 +54,7 @@ class EpochsTrial:
         self.test_stim =  test_stim
         self.test_frequency =  test_frequency
         self.test_amplitude =  test_amplitude
+        self.repetition = repetition
         self.epochs = epochs
 
     @classmethod
@@ -48,6 +66,7 @@ class EpochsTrial:
             dictionary['test_stim'],
             dictionary['test_frequency'],
             dictionary['test_amplitude'],
+            dictionary['repetition'],
             [DataEpoch(**list_item) for list_item in dictionary['epochs']]
         )
 
