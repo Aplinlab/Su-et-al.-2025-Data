@@ -40,23 +40,23 @@ iterating the major version number.
 'spike_criteria'. Default values must be supplied for other keys.
 """
 
-# TODO Add `repetition` to spikes and epoch objects
-# TODO Try to make all *vars -> **vars
-# TODO  Update read_frs_v1 if necessary
-# TODO Automatically set thresholds using standard deviations
+# TODO Implement long
+# TODO Identify units which don't respond well at 10 Hz (check ssr_df)
+# TODO Check that ssr has correct average for units with multiple reps
 # TODO Apply 200 Hz high-pass filter to sliced epoch before spike detection
-# TODO Make cluster plots smaller
+# TODO  New pipeline?
+# TODO      1a. Split epochs, apply per-epoch filters
+# TODO      1b. Get baseline, calculate SD, detect spikes
+# TODO      1c. Export epochs, spikes, baseline, SD
+# TODO      2. Test and plot filters
+# TODO      3. Apply filters and export
+# TODO Automatically set thresholds using standard deviations
+# TODO  Use gaps between trials to set baseline - check timing
 # TODO Add discarded units to cluster plots
 # TODO  Come up with method for deciding which ones are plotted
-# TODO Rethreshold all units
-# TODO  Find places where high frequency sets can be included by discarding units
-# TODO Improve update function
-# TODO Write read-frs-v2
 # TODO Work out method for adding comment to start of recording/concatenating two recording segments
 # TODO  Necessary to get an extra trial out of HFF08-1
-# TODO Lots of docstrings to write and update
 # TODO Add animal ages to METADATA
-# TODO Improve error handling
 
 from .utils import unique
 from .base import (

@@ -7,6 +7,7 @@
 """
 
 import pandas as pd
+import typing
 
 from hff_analysis import constants
 
@@ -104,7 +105,7 @@ class SpikesPhase:
         self.electrical = spikes_elec
 
     @classmethod
-    def from_dict(cls, dictionary: dict[str, any]):
+    def from_dict(cls, dictionary: dict[str, typing.Any]):
         return cls(
             dictionary['epochs_mech'],
             dictionary['epochs_elec'],
@@ -147,8 +148,8 @@ class SpikesPhase:
             mech_df = pd.concat(
                 [spike.to_df(
                     *common_inputs,
-                    'mechanical',
-                    self.epochs_mech
+                    epoch_stim='mechanical',
+                    epochs_count=self.epochs_mech
                 ) for spike in self.mechanical],
                 ignore_index=True
             )
@@ -159,8 +160,8 @@ class SpikesPhase:
             elec_df = pd.concat(
                 [spike.to_df(
                     *common_inputs,
-                    'electrical',
-                    self.epochs_elec
+                    epoch_stim='electrical',
+                    epochs_count=self.epochs_elec
                 ) for spike in self.electrical],
                 ignore_index=True
             )
@@ -201,7 +202,7 @@ class SpikesTrial:
         self.recovery = spikes_rcvr
 
     @classmethod
-    def from_dict(cls, dictionary: dict[str, any]):
+    def from_dict(cls, dictionary: dict[str, typing.Any]):
         return cls(
             dictionary['animal_id'],
             dictionary['position'],
@@ -248,7 +249,7 @@ class SpikesTrial:
         df = pd.concat(
             [phase_obj.to_df(
                 *common_inputs,
-                phase_str
+                phase=phase_str
             ) for phase_obj, phase_str in {
                 self.conditioning: 'conditioning',
                 self.interleaved: 'interleaved',

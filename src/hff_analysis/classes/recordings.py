@@ -6,8 +6,10 @@
 * `FileReadSettings` -- stores all variables used in `main_part1`.
 """
 
-from numpy import ndarray
+import numpy as np
+from numpy.typing import NDArray
 import re
+import typing
 
 from hff_analysis import constants
 from . import base
@@ -51,14 +53,16 @@ class FilenameInfo:
         # Parse the input filename:
         m = adicht_regex_pattern.search(filename)
         try:
-            extension = (m.group('extension') if m.group('extension') else
-                         '.adicht')
-            testcode = m.group('testcode')
+            extension = (
+                m.group('extension') if m.group('extension') # type: ignore
+                else '.adicht'
+            )
+            testcode = m.group('testcode') # type: ignore
             return cls(
-                m.group('name'),
+                m.group('name'), # type: ignore
                 extension,
-                m.group('a_id'),
-                int(m.group('pos')),
+                m.group('a_id'), # type: ignore
+                int(m.group('pos')), # type: ignore
                 constants.TEST_CODES[testcode]
             )
         except AttributeError as e:
@@ -141,7 +145,7 @@ class FileReadSettings:
             self.exclude_amplitudes = exclude_amplitudes
 
     @classmethod
-    def from_dict(cls, dictionary: dict[str, any]):
+    def from_dict(cls, dictionary: dict[str, typing.Any]):
         return cls(
             base.VersionNumber(dictionary['version']),
             dictionary['filename'],
@@ -182,16 +186,16 @@ class Recording:
     recording was made.
     * `test`: String describing the test which was performed.
     * `tick_dt` -- Duration of a single sample in seconds (float).
-    * `signal_data` -- NumPy array of floats. Each value is the signal
-    voltage in microvolts recorded during the sample in that
-    position. Note that the signal is inverted, notch-filtered, and
+    * `signal_data` -- NumPy array of floats representing recording from
+    signal channel. Values are voltages in microvolts with one value per
+    sample. Note that the signal is inverted, notch-filtered, and
     trimmed.
-    * `mech_triggers` -- NumPy array of floats. Each value is the trigger
-    voltage for mechanical stimulation in volts recorded during the
-    sample in that position.
-    * `elec_triggers` -- NumPy array of floats. Each value is the trigger
-    voltage for electrical stimulation in volts recorded during the
-    sample in that position.
+    * `mech_triggers` -- NumPy array of floats representing recording
+    from mechanical trigger channel. Values are voltages in volts with
+    one value per sample.
+    * `elec_triggers` -- NumPy array of floats representing recording
+    from electrical trigger channel. Values are voltages in volts with
+    one value per sample.
     * `markers` -- List of Marker objects describing each comment in the
     recording.
     """
@@ -202,9 +206,9 @@ class Recording:
             position: int,
             test: str,
             tick_dt: float,
-            signal_data: ndarray,
-            mech_triggers: ndarray,
-            elec_triggers: ndarray,
+            signal_data: NDArray[np.floating],
+            mech_triggers: NDArray[np.floating],
+            elec_triggers: NDArray[np.floating],
             markers: list[Marker]
     ):
         self.animal_id = animal_id

@@ -20,9 +20,9 @@ class VersionNumber:
     ):
         m = version_regex_pattern.search(version_str)
         try:
-            self.major = int(m.group('major'))
-            self.minor = int(m.group('minor'))
-            self.patch = int(m.group('patch'))
+            self.major = int(m.group('major')) # type: ignore
+            self.minor = int(m.group('minor')) # type: ignore
+            self.patch = int(m.group('patch')) # type: ignore
         except (AttributeError, ValueError) as e:
             # AttributeError is raised if m is None (i.e. if regex pattern
             # didn't match)
@@ -67,19 +67,25 @@ class VersionNumber:
         else:
             return False
  
-    def __eq__(self, other: typing.Self) -> bool:
-        return (
-            self.major == other.major and
-            self.minor == other.minor and
-            self.patch == other.patch
-        )
+    def __eq__(self, other: object) -> bool:
+        try:
+            return (
+                self.major == other.major and # type: ignore
+                self.minor == other.minor and # type: ignore
+                self.patch == other.patch # type: ignore
+            )
+        except AttributeError:
+            return False
  
-    def __ne__(self, other: typing.Self) -> bool:
-        return (
-            self.major != other.major or
-            self.minor != other.minor or
-            self.patch != other.patch
-        )
+    def __ne__(self, other: object) -> bool:
+        try:
+            return (
+                self.major != other.major or # type: ignore
+                self.minor != other.minor or # type: ignore
+                self.patch != other.patch # type: ignore
+            )
+        except AttributeError:
+            return False
 
     def __gt__(self, other: typing.Self) -> bool:
         if self.major > other.major:

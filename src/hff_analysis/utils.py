@@ -37,6 +37,7 @@ import adi
 import json
 import math
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
@@ -138,7 +139,7 @@ def unique(
     raised with a message displaying list of unique values.
     """
     # Get unique values:
-    if isinstance(list, pd.Series):
+    if isinstance(values, pd.Series):
         unique = values.unique()
     else:
         unique = set(values)
@@ -147,6 +148,7 @@ def unique(
         f"Supplied list contains multiple values: {unique}"
     )
     # Assign first element of `unique` to `value` variable and return:
+    value = None
     for value in unique:
         break
     return value
@@ -157,13 +159,13 @@ def unique(
 def read_record(
         data: adi.read.File,
         record_number: int
-) -> classes.recordings.Recording:
-    """Reads a recording segment and returns a `Recording` object.
+) -> dict[str, typing.Any]:
+    """Reads a recording segment.
     
     A recording segment is created whenever recording is started within
-    a `.adicht` file. Note that the `animal_id`, `position`, and `test`
-    properties of the returned `Recording` object are initialised as
-    `None` and must be populated afterwards.
+    a `.adicht` file. Returns a dictionary containing some attributes
+    for a `Recording` object. The `animal_id`, `position`, and `test`
+    attributes cannot be determined from the recording.
 
     # Error Handling
     Raises `AssertionError` if either of two conditions occurs:
@@ -258,16 +260,13 @@ def read_record(
 
     # Return a `Recording` object, populating fields which are known and
     # initialising others as `None`:
-    return classes.recordings.Recording(
-        None,
-        None,
-        None,
-        tick_dt,
-        signal_trimmed,
-        mechstim_trimmed,
-        elecstim_trimmed,
-        markers
-    )
+    return {
+        'tick_dt': tick_dt,
+        'signal_data': signal_trimmed,
+        'mech_triggers': mechstim_trimmed,
+        'elec_triggers': elecstim_trimmed,
+        'markers': markers
+    }
 
 
 def trim_1darray(trace: np.ndarray, trim_width: int) -> np.ndarray:
@@ -289,7 +288,7 @@ def trigger_value(
     # amplitude. I believe that this was done to solve an imaginary
     # issue so have changed it to simply look for the peak amplitude
     # directly. However, if issues arise, this is a potential cause.
-    return round(max(trigger_data)*correction_factor, 1)
+    return round(max(trigger_data)/correction_factor, 1)
 
 
 def triggers(
@@ -314,13 +313,15 @@ def separate_sweep_phases(
         test: str,
         mech_val: float,
         elec_val: float,
-        triggers_mech: np.ndarray,
-        triggers_elec: np.ndarray
+        triggers_mech: list[int],
+        triggers_elec: list[int]
 ) -> classes.epochs.TriggersTrial:
     """Generates `TriggersTrial` object from paired trigger data.
     
     # Error Handling
-    Raises `ValueError` if neither stimulation value is 0, as that
+    * Raises `KeyError` if test type is neither `'frequency'` nor
+    `'amplitude'`.
+    * Raises `ValueError` if neither stimulation value is 0, as that
     should not occur during either sweep.
     """
     # Determine the separation points between experimental phases:
@@ -348,6 +349,8 @@ def separate_sweep_phases(
                 constants.AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY *
                 constants.SHORT_CONDITIONING_DURATION_SECONDS
             )
+        else:
+            raise KeyError(f"Test type not recognised ({test}).")
         start_itlv = triggers_mech[first_mech_interleaved]
         start_rcvr = triggers_mech[
             first_mech_interleaved +
@@ -357,8 +360,8 @@ def separate_sweep_phases(
     else:
         # Raise error if neither stimulation value is 0:
         raise ValueError(
-            "Neither stimulation value is 0, suggesting that stimulation was "
-            "performed incorrectly."
+            "Neither stimulation value is 0, suggesting that"
+            "stimulation was performed incorrectly."
         )
     # Collect triggers into lists according to phase:
     triggers_mech_cond = [x for x in triggers_mech if x<start_itlv]
@@ -384,7 +387,7 @@ def separate_sweep_phases(
 ############### *DETECTING AND SORTING SPIKE RESPONSES* ################
 
 def detect_spikes(
-        signal_data: np.ndarray,
+        signal_data: NDArray[np.floating],
         triggers: list[int],
         epoch_timing_ms: tuple[int | float, int | float],
         tick_dt: float,
@@ -452,7 +455,7 @@ def detect_spikes(
 
 ################### *SAVING AND LOADING JSON FILES* ####################
 
-def convert_to_json_dict(obj) -> any:
+def convert_to_json_dict(obj: typing.Any) -> typing.Any:
     """Converts `obj` to a format compatible with the JSON decoder.
     
     Searches recursively through `dicts`, `lists`, and `tuples` to
@@ -490,7 +493,7 @@ def convert_to_json_dict(obj) -> any:
 def confirm_save(
         file_path: str,
         filename: str,
-        output_dict: dict[str, any],
+        output_dict: dict[str, typing.Any],
         force_overwrite: bool = False
 ) -> None:
     """Asks for confirmation before overwriting existing JSON file.

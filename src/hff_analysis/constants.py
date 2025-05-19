@@ -137,8 +137,12 @@ STIMULATION_TYPES = ['mechanical', 'electrical']
 OUTPUT_TYPES = ['clusters', 'frs', 'epochs', 'spikes']
 
 
-#*UNIT CONVERSION CONSTANTS
+#*UNIT CONSTANTS
 MILLISECONDS_PER_SECOND = 1000
+TEST_UNITS = {
+    'frequency': 'Hz',
+    'amplitude': '× threshold',
+}
 
 
 #*STIMULATION PARAMETERS
@@ -305,7 +309,7 @@ ADICHT_FILENAME_REGEX = (
 #   used during the conditioning phase (in our data, this should always
 #   be 'electrical').
 SWEEP_REGEX = (
-    r"(?:^(?P<testvar>\w+)_mech_(?P<mechval>\d+)_elec_(?P<elecval>\d+)$)"
+    r"(?:^(?P<testvar>\w+)_mech_(?P<mechval>\d+(.\d+)?)_elec_(?P<elecval>\d+(.\d+)?)$)"
 )
 NINEONE_REGEX = r"(?:^mech_(?P<mechval>\d)_elec_(?P<elecval>\d)$)"
 LONGDURATION_REGEX = r"(?:^long_(?P<stimtype>\w{4})$)"

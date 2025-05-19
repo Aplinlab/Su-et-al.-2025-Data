@@ -1,4 +1,4 @@
-"""Functions specific to the analysis of frequency sweeps.
+"""Functions specific to the analysis of frequency and amplitude sweeps.
 
 # Functions
 ## Spike detection
@@ -40,13 +40,20 @@ def spikes_info(
 
     See `base.spikes_info()` docstring for more information.
     """
+    assert recording.test == 'frequency' or recording.test == 'amplitude'
     # Define trigger thresholds:
+    if recording.test == 'amplitude':
+        trigger_correction_mech = max_amp("mech", recording.markers)
+        trigger_correction_elec = max_amp("elec", recording.markers)
+    else:
+        trigger_correction_mech = 1
+        trigger_correction_elec = 1
     trigger_threshold_mech = (
-        utils.trigger_value(recording.mech_triggers)*
+        utils.trigger_value(recording.mech_triggers, trigger_correction_mech)*
         constants.TRIGGER_DETECTION_NOISE_WINDOW
     )
     trigger_threshold_elec = (
-        utils.trigger_value(recording.elec_triggers)*
+        utils.trigger_value(recording.elec_triggers, trigger_correction_elec)*
         constants.TRIGGER_DETECTION_NOISE_WINDOW
     )
     # Create empty lists to populate and return later:
@@ -56,41 +63,73 @@ def spikes_info(
         # Parse marker text and check that it fits expected format:
         m = p.search(marker.comment)
         try:
-            assert m.group('testvar')=='frequency'
+            assert m.group('testvar') == recording.test # type: ignore
         # Print error message and skip marker if no match is found:
         except AttributeError:
             # AttributeError is raised if m is None (i.e. if regex
             # pattern didn't match)
             print(
-                "Comment does not match the expected format for frequency "
-                f"sweeps ({marker.comment})."
+                "Comment does not match the expected format for "
+                f"{recording.test} trials ({marker.comment})."
             )
             continue
         except AssertionError:
             print(
-                "Comment indicates that this was not a frequency sweep, but "
-                f"the file was labelled `freqsweep` ({marker.comment})."
+                "Comment indicates a different test type to filename "
+                f"({marker.comment})."
             )
             continue
-        # Extract frequencies from marker text:
-        mech_cond_frequency = float(m.group('mechval'))
-        elec_cond_frequency = float(m.group('elecval'))
-        # Detect triggers and sort by experimental phase:
+        # Extract values from marker text:
+        mech_value = float(m.group('mechval')) # type: ignore
+        elec_value = float(m.group('elecval')) # type: ignore
+        if recording.test == 'frequency':
+            adjustment = 1
+        elif recording.test == 'amplitude':
+            max_amplitude = max(mech_value, elec_value)
+            if (
+                0.5 <= max_amplitude <= 2 and
+                min(mech_value, elec_value) == 0
+            ):
+                adjustment = min(1, max_amplitude)
+            else:
+                raise IndexError(
+                    "Amplitude values are invalid and will interfere "
+                    "with trigger detection. One amplitude should be 0 "
+                    "and the other between 0.5 and 2 (inclusive).\n"
+                    f"Mechanical amplitude: {mech_value}\n"
+                    f"Electrical amplitude: {elec_value}"
+                )
+        else:
+            # Cannot be reached due to assertion at start of function,
+            # but is included to fix `reportPossiblyUnboundError` later
+            continue
+        # Detect triggers:
         triggers_mech = utils.triggers(
             recording.mech_triggers[marker.start_sample:marker.end_sample],
-            trigger_threshold_mech
+            trigger_threshold_mech * adjustment
         )
         triggers_elec = utils.triggers(
             recording.elec_triggers[marker.start_sample:marker.end_sample],
-            trigger_threshold_elec
+            trigger_threshold_elec * adjustment
         )
+        # Sort triggers by experimental phase using frequencies:
         triggers_by_phase = utils.separate_sweep_phases(
-            'frequency',
-            mech_cond_frequency,
-            elec_cond_frequency,
+            recording.test,
+            mech_value,
+            elec_value,
             triggers_mech,
             triggers_elec
         )
+        if recording.test == 'frequency':
+            test_frequency = triggers_by_phase.stim_value
+            test_amplitude = constants.FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE
+        elif recording.test == 'amplitude':
+            test_frequency = constants.AMPLITUDE_SWEEP_CONDITIONING_FREQUENCY
+            test_amplitude = triggers_by_phase.stim_value
+        else:
+            # Cannot be reached due to assertion at start of function,
+            # but is included to fix `reportPossiblyUnboundError` later
+            continue
         # Constrain signal_data to the current trial:
         signal_data_trial = recording.signal_data[
             marker.start_sample:marker.end_sample
@@ -122,8 +161,8 @@ def spikes_info(
             'position': recording.position,
             'test': recording.test,
             'test_stim': triggers_by_phase.test_stim,
-            'test_frequency': triggers_by_phase.stim_value,
-            'test_amplitude': constants.FREQUENCY_SWEEP_CONDITIONING_AMPLITUDE,
+            'test_frequency': test_frequency,
+            'test_amplitude': test_amplitude,
             'repetition': repetition
         }
         # Define `SpikesTrial` object:
@@ -171,150 +210,76 @@ def spikes_info(
     return (output_spikes, output_epochs)
 
 
+def max_amp(stim_type: str, markers: list[classes.recordings.Marker]):
+    max_amp = 1
+    for marker in markers:
+        m = p.search(marker.comment)
+        try:
+            assert m.group('testvar') == 'amplitude' # type: ignore
+            max_amp = max(
+                max_amp,
+                round(float(m.group(f'{stim_type}val'))) # type: ignore
+            )
+        except (AssertionError, AttributeError):
+            # AssertionError is raised if test type is not amplitude
+            # AttributeError is raised if comment does not match pattern
+            print(
+                "Trial which is not amplitude sweep has been passed to "
+                f"amplitude sweep pipeline ({marker.comment})."
+            )
+    return max_amp
+
+
 ################# *SPIKE- AND FOLLOWING-RATE ANALYSIS* #################
 
-def simple_spikerate_df(
-    spikes_df: pd.DataFrame
-) -> pd.DataFrame:
-    """Calculates mean spike rate per stimulation from saved spike data.
-
-    See `base.calculate_ssr()` docstring for more information.
-    """
-    #!Effect of missing values (e.g. if specific frequencies are removed
-    #!from analysis of a particular unit) is currently untested. Will
-    #!likely raise `ZeroDivisionError` which can be handled to skip that
-    #!frequency. However, must ensure that missing values do not end up
-    #!in the output DataFrame as `0`!
-    # Filter input to frequency tests if others are present:
-    try:
-        test = utils.unique(spikes_df['Test'])
-        assert test == 'frequency'
-    except AssertionError:
-        spikes_df = spikes_df.loc[spikes_df['Test'] == 'frequency']
-    # Define output DataFrame:
-    simple_spikerate_df = pd.DataFrame()
-    for trial_id in spikes_df['Trial ID'].unique():
-        test_spikes_df = spikes_df.loc[spikes_df['Trial ID'] == trial_id]
-        # Get columns to be retained:
-        animal_id = utils.unique(test_spikes_df['Animal ID'])
-        sex = utils.unique(test_spikes_df['Sex'])
-        position = utils.unique(test_spikes_df['Position'])
-        unit_id = utils.unique(test_spikes_df['Unit ID'])
-        unit_type = utils.unique(test_spikes_df['Unit Type'])
-        stimulus = utils.unique(test_spikes_df['Test Stimulus'])
-        frequency = utils.unique(test_spikes_df['Test Frequency'])
-        amplitude = utils.unique(test_spikes_df['Test Amplitude'])
-        test_id = utils.unique(test_spikes_df['Test ID'])
-        repetition = utils.unique(test_spikes_df['Repetition'])
-        # Prepare spike rates dict:
-        simple_spikerates = {
-            'Conditioning': 0.0,
-            'Interleaved Mechanical': 0.0,
-            'Interleaved Electrical': 0.0,
-            'Recovery Mechanical': 0.0,
-            'Recovery Electrical': 0.0
-        }
-        for phase_id in test_spikes_df['Phase ID'].unique():
-            phase_spikes_df = test_spikes_df.loc[
-                spikes_df['Phase ID'] == phase_id
-            ]
-            # Get columns to be retained:
-            epochs = utils.unique(phase_spikes_df['Total Epochs'])
-            phase = utils.unique(phase_spikes_df['Phase'])
-            stim = utils.unique(phase_spikes_df['Epoch Stimulus'])
-            # Identify relevant dict entry for this phase and stim:
-            if epochs > 0:
-                if phase == 'conditioning':
-                    column = 'Conditioning'
-                else:
-                    column = f'{phase.capitalize()} {stim.capitalize()}'
-            else:
-                # Only conditioning phase may have no epochs:
-                # This occurs for stim type other than test stim.
-                if phase == 'conditioning':
-                    pass
-                else:
-                    raise AssertionError(f"Unexpected empty phase ({phase_id}).")
-            # Write relevant dict entry:
-            simple_spikerates[column] = len(phase_spikes_df) / epochs
-        # Append results to output dict:
-        simple_spikerate_df = pd.concat([
-            simple_spikerate_df,
-            pd.DataFrame([[
-                animal_id,
-                sex,
-                position,
-                unit_id,
-                unit_type,
-                test,
-                stimulus,
-                frequency,
-                amplitude,
-                test_id,
-                repetition,
-                trial_id,
-                simple_spikerates['Conditioning'],
-                simple_spikerates['Interleaved Mechanical'],
-                simple_spikerates['Interleaved Electrical'],
-                simple_spikerates['Recovery Mechanical'],
-                simple_spikerates['Recovery Electrical']
-            ]], columns=constants.SIMPLE_SPIKERATE_COLUMNS)
-        ], ignore_index=True)
-    # Apply dtypes to output dict:
-    categories = {
-        'Test': constants.TEST_CODES.values(),
-        'Test Stimulus': constants.STIMULATION_TYPES
-    }
-    return utils.typed_dataframe(
-        simple_spikerate_df,
-        constants.SIMPLE_SPIKERATE_TYPES,
-        categories
-    )
-
-
 def simple_spikerate_plotdf(
-        ssr_df: pd.DataFrame
+        ssr_df: pd.DataFrame,
+        index_col: str
 ) -> pd.DataFrame:
     """Returns a DataFrame for plotting simple spike rate analysis.
     
-    Calculates mean of relevant values across rows in
-    `simple_frequency_table` and arranges them so that they can be
-    easily plotted using `simple_plot_df.plot()`.
+    Calculates mean of relevant values in `ssr_df` and arranges them for
+    easy plotting.
+
+    # Arguments
+    * `ssr_df` -- input DataFrame following format output by
+    `base.calculate_ssr()`.
     """
     #!As with previous function, effect of missing values (e.g. if
     #!specific frequencies are removed from analysis of a particular
     #!unit) is currently untested. Must ensure that whatever value ends
     #!up in the table can be differentiated from `0` and excluded from
     #!mean calculation!
-    # Filter input to frequency tests if others are present:
+    # Check that only one test type is present in input DataFrame:
     try:
-        test = utils.unique(ssr_df['Test'])
-        assert test == 'frequency'
+        utils.unique(ssr_df['Test'])
     except AssertionError:
-        ssr_df = ssr_df.loc[
-            ssr_df['Test'] == 'frequency'
-        ]
-    # Identify frequencies present in the analysis:
-    frequencies = ssr_df['Test Frequency'].unique()
+        print(
+            "Before running this function, filter input DataFrame to "
+            "contain only one test type."
+        )
+        raise
+    # Identify test variables present in the analysis:
+    index = ssr_df[index_col].unique()
     # Define DataFrame to be plotted:
     simple_plot_df = pd.DataFrame(
-            index=frequencies,
+            index=index,
             columns=constants.SSR_PLOT_COLUMNS
         ).astype(constants.SSR_PLOT_TYPES)
     for test_id in ssr_df['Test ID'].unique():
         # Filter analysis DataFrame to relevant rows:
         filtered_df = ssr_df.loc[ (ssr_df['Test ID'] == test_id)]
         stimulus = utils.unique(filtered_df['Test Stimulus'])
-        frequency = utils.unique(filtered_df['Test Frequency'])
+        index = utils.unique(filtered_df[index_col])
         # Filter matching rows and calculate mean:
         # Conditioning phase is handled first, separately.
         simple_plot_df.loc[
-            frequency,
+            index,
             f'SSR Conditioning - {stimulus.capitalize()}'
         ] = statistics.mean(filtered_df['SSR Conditioning'])
         for input_column in filtered_df.columns[-4:]:
             simple_plot_df.loc[
-                frequency,
+                index,
                 f'{input_column} Post-{stimulus.capitalize()}'
             ] = statistics.mean(filtered_df[input_column])
     # Sort and return DataFrame
@@ -324,6 +289,7 @@ def simple_spikerate_plotdf(
 
 def plot_single_ssr(
         ssr_plot_df: pd.DataFrame,
+        test: str,
         phase: str | None = None,
         ax: axes.Axes | None = None
 ) -> None:
@@ -336,7 +302,10 @@ def plot_single_ssr(
     if ax is None:
         ax = plt.gca()
     try:
-        ssr_plot_df = ssr_plot_df.loc[:, ssr_plot_df.columns.str.contains(phase)]
+        ssr_plot_df = ssr_plot_df.loc[
+            :,
+            ssr_plot_df.columns.str.contains(phase) # type: ignore
+        ]
     except TypeError:
         pass
     for (series_name, series) in ssr_plot_df.items():
@@ -345,7 +314,7 @@ def plot_single_ssr(
     plt.setp(
         ax,
         xticks=list(ssr_plot_df.index),
-        xlabel="Conditioning phase frequency (Hz)",
+        xlabel=f"Conditioning phase {test} ({constants.TEST_UNITS[test]})",
         ylabel="Mean spike rate per stimulation",
         title=phase
     )
@@ -361,12 +330,17 @@ def plot_single_raster(
         row_split: str,
 ) -> None:
     """Plots raster with rows separated by `row_split`."""
-    # Filter input to frequency tests if others are present:
+    # Ensure only one valid test type is present in input DataFrame:
     try:
         test = utils.unique(spikes_df['Test'])
-        assert test == 'frequency'
+        assert test == 'frequency' or test == 'amplitude'
     except AssertionError:
-        spikes_df = spikes_df.loc[spikes_df['Test'] == 'frequency']
+        print(
+            "Before running this function, filter input DataFrame to "
+            "contain only frequency sweep trials or only amplitude "
+            "sweep trials."
+        )
+        raise
     # Get list of rows to be drawn:
     row_names = spikes_df[row_split].unique()
     # Define initial y-coordinate for mechanical and electrical rows:
@@ -374,14 +348,17 @@ def plot_single_raster(
     y_elec = len(row_names) / 2
     for row_name in row_names:
         row_df = spikes_df.loc[spikes_df[row_split] == row_name]
+        test_stim = utils.unique(row_df['Test Stimulus'])
         for (_i, spike) in row_df.iterrows():
             # Get variables for plotting:
             phase = spike['Phase']
-            test_stim = spike['Test Stimulus']
             epoch_number = spike['Epoch Number']
-            point_colour = ('orange' if spike['Epoch Stimulus'] == 'mechanical' else
-                      ('sky' if spike['Epoch Stimulus'] == 'electrical' else
-                       'black'))
+            point_colour = (
+                'orange' if spike['Epoch Stimulus'] == 'mechanical' else (
+                    'sky' if spike['Epoch Stimulus'] == 'electrical' else
+                    'black'
+                )
+            )
             # Get x-value (latency) and make necessary adjustments:
             if phase == 'conditioning':
                 x = epoch_number/spike['Test Frequency']
@@ -390,7 +367,13 @@ def plot_single_raster(
                     frequency = constants.INTERLEAVED_EPOCHS_FREQUENCY * 2
                 elif phase == 'recovery':
                     frequency = constants.RECOVERY_EPOCHS_FREQUENCY * 20
+                else:
+                    raise KeyError(
+                        f"Experimental phase not recognised ({phase})."
+                    )
                 x_diff = int(spike['Epoch Stimulus'] == 'mechanical')
+                #!`RASTER_PHASE_SPACING` is only valid for frequency
+                #!sweeps and amplitude sweeps
                 x = (constants.RASTER_PHASE_SPACING[phase] +
                      (epoch_number * 2 - x_diff) / frequency)
             x += (spike['Latency (ms)'] / 1000)
@@ -400,7 +383,7 @@ def plot_single_raster(
             # Plot point:
             plt.scatter(
                 x,
-                y,
+                y, # type: ignore
                 constants.RASTER_POINT_SIZE,
                 constants.PALETTE[point_colour]
             )

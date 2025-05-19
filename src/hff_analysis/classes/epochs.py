@@ -6,6 +6,11 @@
 * `TriggersTrial` -- list of trigger timings for a recording trial.
 """
 
+import numpy as np
+from numpy.typing import NDArray
+import typing
+
+
 class DataEpoch:
     """Data necessary to plot the trace for an epoch.
     
@@ -18,7 +23,7 @@ class DataEpoch:
     """
     def __init__(
             self,
-            trace: list[float],
+            trace: NDArray[np.floating],
             start_ms: int | float,
             tick_dt_ms: int | float,
             phase: str,
@@ -58,7 +63,7 @@ class EpochsTrial:
         self.epochs = epochs
 
     @classmethod
-    def from_dict(cls, dictionary: dict[str, any]):
+    def from_dict(cls, dictionary: dict[str, typing.Any]):
         return cls(
             dictionary['animal_id'],
             dictionary['position'],

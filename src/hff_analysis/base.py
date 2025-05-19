@@ -13,7 +13,7 @@ from . import classes
 from . import constants
 from . import utils
 from . import updater
-from . import freq
+from . import sweeps
 
 
 ############################# *main_part1* #############################
@@ -80,12 +80,20 @@ def read_adicht(
     else:
         records = [utils.read_record(data, i) for i, _x in
                    enumerate(data.records)]
-    # Populate `Recording` attributes which `read_record()` cannot:
-    for record in records:
-        record.animal_id = filename_info.animal_id
-        record.position = filename_info.position
-        record.test = filename_info.test
-    return records
+    # Return list of `Recording` objects, filling in attributes which
+    # `read_record()` cannot:
+    return [
+        classes.recordings.Recording(
+            filename_info.animal_id,
+            filename_info.position,
+            filename_info.test,
+            record['tick_dt'],
+            record['signal_data'],
+            record['mech_triggers'],
+            record['elec_triggers'],
+            record['markers']
+        ) for record in records
+    ]
 
 
 def update_outputs(
@@ -171,16 +179,16 @@ def update_outputs(
                 plt.close()
         # Save specified JSON outputs:
         if save_outputs:
-            common_inputs = [
-                frs.filename,
-                frs.repetition,
-                frs.recording_segment
-            ]
+            common_arguments = {
+                'input_filename': frs.filename,
+                'repetition': frs.repetition,
+                'recording_segment': frs.recording_segment
+            }
             if 'frs' in save_outputs:
                 save_to_json(
-                    *common_inputs,
-                    'frs',
-                    force_overwrite,
+                    **common_arguments,
+                    json_type='frs',
+                    force_overwrite=force_overwrite,
                     filename=frs.filename,
                     epoch_timing_ms=frs.epoch_timing_ms,
                     threshold_uV=frs.threshold_uV,
@@ -190,18 +198,18 @@ def update_outputs(
                 )
             if 'epochs' in save_outputs:
                 save_to_json(
-                    *common_inputs,
-                    'epochs',
-                    force_overwrite,
+                    **common_arguments,
+                    json_type='epochs',
+                    force_overwrite=force_overwrite,
                     epochs=epochs,
                     exclude_frequencies=frs.exclude_frequencies,
                     exclude_amplitudes=frs.exclude_amplitudes
                 )
             if 'spikes' in save_outputs:
                 save_to_json(
-                    *common_inputs,
-                    'spikes',
-                    force_overwrite,
+                    **common_arguments,
+                    json_type='spikes',
+                    force_overwrite=force_overwrite,
                     spikes=filtered_spikes
                 )
         # Print completion message and update total updated files count:
@@ -239,8 +247,8 @@ def spikes_info(
     * Raises `AssertionError` if the number of epochs extracted from any
     trial does not match the number of triggers present in that trial.
     """
-    if recording.test == 'frequency':
-        return freq.spikes_info(
+    if recording.test == 'frequency' or recording.test == 'amplitude':
+        return sweeps.spikes_info(
             recording,
             repetition,
             epoch_timing_ms,
@@ -257,6 +265,8 @@ def spikes_info(
     #     return nine.analyse_nineone()
     # elif recording.test == "long-duration":
     #     return long.analyse_longduration()
+    else:
+        raise KeyError(f"Test type not recognised ({recording.test}).")
 
 
 def filter_spikes(
@@ -304,10 +314,14 @@ def filter_spikes(
             trial.test_amplitude in exclude_amplitudes):
             continue
         # Test each experimental phase separately:
-        # `filtered_phases` will contain one list of `SpikesPhase`
-        # objects for each experimental phase
-        filtered_phases = []
-        for phase in [trial.conditioning, trial.interleaved, trial.recovery]:
+        # `filtered_phases` will contain one `SpikesPhase` object for
+        # each experimental phase
+        filtered_phases = {}
+        for (argument, phase) in {
+            'spikes_cond': trial.conditioning,
+            'spikes_itlv': trial.interleaved,
+            'spikes_rcvr': trial.recovery
+        }.items():
             # Apply spike exclusion criteria:
             filtered_spikes_mech = []
             filtered_spikes_elec = []
@@ -349,14 +363,13 @@ def filter_spikes(
                 )
                 if latency_min and latency_max and size_min and size_max:
                     filtered_spikes_elec.append(spike)
-            filtered_phases.append(classes.spikes.SpikesPhase(
+            filtered_phases[argument] = classes.spikes.SpikesPhase(
                 phase.epochs_mech,
                 phase.epochs_elec,
                 filtered_spikes_mech,
                 filtered_spikes_elec
-            ))
+            )
         # Generate `SpikesTrial` object from filtered spikes:
-        # Each list in `filtered_phases` is passed as different argument
         filtered_trials.append(classes.spikes.SpikesTrial(
             trial.animal_id,
             trial.position,
@@ -365,7 +378,7 @@ def filter_spikes(
             trial.test_frequency,
             trial.test_amplitude,
             trial.repetition,
-            *filtered_phases
+            **filtered_phases
         ))
     # Return complete list of filtered peaks:
     return filtered_trials
@@ -501,10 +514,10 @@ def plot_clusters(
         plt.xlabel("Time (ms)")
         plt.ylabel("Signal voltage (μV)")
         ax = plt.gca()
-        ax.set_ylim([
+        ax.set_ylim((
             constants.CLUSTER_YMIN,
             max_voltage*constants.CLUSTER_YMAX_SCALE
-        ])
+        ))
     plt.subplot(2, 1, 1)
     plt.title("Mechanical")
     plt.subplot(2, 1, 2)
@@ -716,20 +729,109 @@ def calculate_ssr(
     # Arguments
     * `spikes_df` -- DataFrame containing spike data.
     """
-    freq_spikes = spikes_df.loc[spikes_df['Test'] == 'frequency']
-    # ampl_spikes = spikes_df.loc[spikes_df['Test'] == 'amplitude']
-    # nine_spikes = spikes_df.loc[spikes_df['Test'] == 'nine-one']
-    # long_spikes = spikes_df.loc[spikes_df['Test'] == 'long-duration']
-    freq_ssr = (freq.simple_spikerate_df(freq_spikes) if not freq_spikes.empty
-                else pd.DataFrame())
-    # ampl_ssr = (ampl.simple_spikerate_df(freq_spikes) if not ampl_spikes.empty
+    #!Effect of missing values (e.g. if specific frequencies are removed
+    #!from analysis of a particular unit) is currently untested. Will
+    #!likely raise `ZeroDivisionError` which can be handled to skip that
+    #!frequency. However, must ensure that missing values do not end up
+    #!in the output DataFrame as `0`!
+    # Define output DataFrame:
+    simple_spikerate_df = pd.DataFrame()
+    for trial_id in spikes_df['Trial ID'].unique():
+        test_spikes_df = spikes_df.loc[spikes_df['Trial ID'] == trial_id]
+        # Get columns to be retained:
+        animal_id = utils.unique(test_spikes_df['Animal ID'])
+        sex = utils.unique(test_spikes_df['Sex'])
+        position = utils.unique(test_spikes_df['Position'])
+        unit_id = utils.unique(test_spikes_df['Unit ID'])
+        unit_type = utils.unique(test_spikes_df['Unit Type'])
+        test = utils.unique(test_spikes_df['Test'])
+        stimulus = utils.unique(test_spikes_df['Test Stimulus'])
+        frequency = utils.unique(test_spikes_df['Test Frequency'])
+        amplitude = utils.unique(test_spikes_df['Test Amplitude'])
+        test_id = utils.unique(test_spikes_df['Test ID'])
+        repetition = utils.unique(test_spikes_df['Repetition'])
+        # Prepare spike rates dict:
+        simple_spikerates = {
+            'Conditioning': 0.0,
+            'Interleaved Mechanical': 0.0,
+            'Interleaved Electrical': 0.0,
+            'Recovery Mechanical': 0.0,
+            'Recovery Electrical': 0.0
+        }
+        for phase_id in test_spikes_df['Phase ID'].unique():
+            phase_spikes_df = test_spikes_df.loc[
+                spikes_df['Phase ID'] == phase_id
+            ]
+            # Get columns to be retained:
+            epochs = utils.unique(phase_spikes_df['Total Epochs'])
+            phase = utils.unique(phase_spikes_df['Phase'])
+            stim = utils.unique(phase_spikes_df['Epoch Stimulus'])
+            # Identify and write relevant dict entry for phase and stim:
+            if epochs > 0:
+                if phase == 'conditioning':
+                    #!This works for all test types except nine-one, as
+                    #!that uniquely contains both stim types during the
+                    #!conditioning phase
+                    column = 'Conditioning'
+                else:
+                    column = f'{phase.capitalize()} {stim.capitalize()}'
+                simple_spikerates[column] = len(phase_spikes_df) / epochs
+            else:
+                # Only conditioning phase may have no epochs:
+                # This occurs for stim type other than test stim.
+                if phase == 'conditioning':
+                    pass
+                else:
+                    raise AssertionError(
+                        f"Unexpected empty phase ({phase_id})."
+                    )
+        # Append results to output dict:
+        simple_spikerate_df = pd.concat([
+            simple_spikerate_df,
+            pd.DataFrame([[
+                animal_id,
+                sex,
+                position,
+                unit_id,
+                unit_type,
+                test,
+                stimulus,
+                frequency,
+                amplitude,
+                test_id,
+                repetition,
+                trial_id,
+                simple_spikerates['Conditioning'],
+                simple_spikerates['Interleaved Mechanical'],
+                simple_spikerates['Interleaved Electrical'],
+                simple_spikerates['Recovery Mechanical'],
+                simple_spikerates['Recovery Electrical']
+            ]], columns=constants.SIMPLE_SPIKERATE_COLUMNS)
+        ], ignore_index=True)
+    # Apply dtypes to output dict:
+    categories = {
+        'Test': constants.TEST_CODES.values(),
+        'Test Stimulus': constants.STIMULATION_TYPES
+    }
+    return utils.typed_dataframe(
+        simple_spikerate_df,
+        constants.SIMPLE_SPIKERATE_TYPES,
+        categories
+    )
+    # freq_spikes = spikes_df.loc[spikes_df['Test'] == 'frequency']
+    # # ampl_spikes = spikes_df.loc[spikes_df['Test'] == 'amplitude']
+    # # nine_spikes = spikes_df.loc[spikes_df['Test'] == 'nine-one']
+    # # long_spikes = spikes_df.loc[spikes_df['Test'] == 'long-duration']
+    # freq_ssr = (freq.simple_spikerate_df(freq_spikes) if not freq_spikes.empty
     #             else pd.DataFrame())
-    # nine_ssr = (nine.simple_spikerate_df(freq_spikes) if not nine_spikes.empty
-    #             else pd.DataFrame())
-    # long_ssr = (long.simple_spikerate_df(freq_spikes) if not long_spikes.empty
-    #             else pd.DataFrame())
-    return freq_ssr
-    # return pd.concat([freq_ssr, ampl_ssr, nine_ssr, long_ssr])
+    # # ampl_ssr = (ampl.simple_spikerate_df(freq_spikes) if not ampl_spikes.empty
+    # #             else pd.DataFrame())
+    # # nine_ssr = (nine.simple_spikerate_df(freq_spikes) if not nine_spikes.empty
+    # #             else pd.DataFrame())
+    # # long_ssr = (long.simple_spikerate_df(freq_spikes) if not long_spikes.empty
+    # #             else pd.DataFrame())
+    # return freq_ssr
+    # # return pd.concat([freq_ssr, ampl_ssr, nine_ssr, long_ssr])
 
 
 def plot_combined_ssr(
@@ -742,20 +844,14 @@ def plot_combined_ssr(
     try:
         # Determine correct module to handle plotting:
         test = utils.unique(ssr_df['Test'])
-        if test == 'frequency':
-            ssr_plot_df = freq.simple_spikerate_plotdf(ssr_df)
-            plot_ssr = freq.plot_single_ssr
-        # elif test == 'amplitude':
-        #     ssr_plot_df = ampl.simple_spikerate_plotdf(ssr_df)
-        #     plot_ssr = ampl.plot_single_ssr
-        # elif test == 'nine-one':
-        #     ssr_plot_df = nine.simple_spikerate_plotdf(ssr_df)
-        #     plot_ssr = nine.plot_single_ssr
-        # elif test == 'long-duration':
-        #     ssr_plot_df = long.simple_spikerate_plotdf(ssr_df)
-        #     plot_ssr = long.plot_single_ssr
+        if test == 'frequency' or test == 'amplitude':
+            ssr_plot_df = sweeps.simple_spikerate_plotdf(ssr_df, test)
+            plot_ssr = sweeps.plot_single_ssr
         else:
-            raise KeyError(f"Invalid `Test` value: {test}.")
+            raise KeyError(
+                "Simple spikerate should only be plotted for frequency "
+                f"sweeps or amplitude sweeps (input test type: {test})."
+            )
         # Plot subplots:
         f, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=constants.FIGSIZE)
         plot_ssr(
@@ -787,7 +883,10 @@ def plot_combined_ssr(
             )
         return
     except AssertionError:
-        # TODO generate four SSR plots together, one for each test
+        # TODO plot one SSR for frequency and one for amplitude
+        # The above could be done by filtering `ssr_df` then calling the
+        # function itself, but I want to investigate arranging the plots
+        # into one figure.
         raise NotImplementedError("Plotting multiple test types together.")
 
 
@@ -806,18 +905,15 @@ def plot_combined_raster(
         test_df = spikes_df.loc[spikes_df['Test'] == test]
         plt.figure(figsize=constants.FIGSIZE)
         # Determine correct module:
-        if test == 'frequency':
-            plot_split = 'Test Frequency'
-            plot_raster = freq.plot_single_raster
-            ylabel_suffix = ' Hz'
-        # elif test == 'amplitude':
-        #     plot_split = 'Test Amplitude'
-        #     plot_raster = ampl.plot_single_raster
-        #     ylabel_suffix = ' μA'
-        # else:
-        #     plot_split = 'Test Stimulus'
-        #     plot_raster = freq.plot_single_raster
-        #     ylabel_suffix = ''
+        if test == 'frequency' or test == 'amplitude':
+            plot_split = f'Test {test.capitalize}'
+            plot_raster = sweeps.plot_single_raster
+        else:
+            print(
+                "Rasters may only be plotted for frequency sweeps and "
+                "amplitude sweeps."
+            )
+            continue
         # Separate, order, and plot subplots:
         plot_names = sorted(test_df[plot_split].unique())
         plots_count = len(plot_names)
@@ -828,7 +924,7 @@ def plot_combined_raster(
                 plot_df,
                 'Trial ID'
             )
-            plt.ylabel(f'{plot_name}{ylabel_suffix}')
+            plt.ylabel(f'{plot_name} {constants.TEST_UNITS[test]}')
         # Prettify figure:
         plt.suptitle(f"Rasters by {plot_split.lower()} and trial")
         plt.tight_layout()
@@ -836,6 +932,7 @@ def plot_combined_raster(
         if save_figure:
             utils.save_plot(
                 'rasters',
-                f"rasters_{test[0:4]}_[{plot_split}]-[Trial ID]_{utils.current_version}"
+                (f"rasters_{test[0:4]}_[{plot_split}]-[Trial ID]_" +
+                 str(utils.current_version))
             )
     return
