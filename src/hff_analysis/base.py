@@ -841,11 +841,16 @@ def plot_combined_ssr(
         filename: str | None = None
 ) -> None:
     """Plots calculated mean spike rates by experimental phase."""
+    # ! Replace try-catch structure, as future function calls are more
+    # ! likely to contain multiple test types than a single test type
     try:
         # Determine correct module to handle plotting:
         test = utils.unique(ssr_df['Test'])
         if test == 'frequency' or test == 'amplitude':
-            ssr_plot_df = sweeps.simple_spikerate_plotdf(ssr_df, test)
+            ssr_plot_df = sweeps.simple_spikerate_plotdf(
+                ssr_df,
+                f'Test {test.capitalize()}'
+            )
             plot_ssr = sweeps.plot_single_ssr
         else:
             raise KeyError(
@@ -856,16 +861,19 @@ def plot_combined_ssr(
         f, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=constants.FIGSIZE)
         plot_ssr(
             ssr_plot_df,
+            test,
             'Conditioning',
             ax1
         )
         plot_ssr(
             ssr_plot_df,
+            test,
             'Interleaved',
             ax2
         )
         plot_ssr(
             ssr_plot_df,
+            test,
             'Recovery',
             ax3
         )
@@ -883,11 +891,18 @@ def plot_combined_ssr(
             )
         return
     except AssertionError:
-        # TODO plot one SSR for frequency and one for amplitude
-        # The above could be done by filtering `ssr_df` then calling the
-        # function itself, but I want to investigate arranging the plots
-        # into one figure.
-        raise NotImplementedError("Plotting multiple test types together.")
+        # TODO investigate arranging the plots into one figure.
+        for test in ssr_df['Test'].unique():
+            try:
+                plot_combined_ssr(
+                    ssr_df.loc[ssr_df['Test'] == test],
+                    plot_title,
+                    save_figure,
+                    filename
+                )
+            except KeyError as e:
+                print(e)
+                continue
 
 
 def plot_combined_raster(
@@ -906,7 +921,7 @@ def plot_combined_raster(
         plt.figure(figsize=constants.FIGSIZE)
         # Determine correct module:
         if test == 'frequency' or test == 'amplitude':
-            plot_split = f'Test {test.capitalize}'
+            plot_split = f'Test {test.capitalize()}'
             plot_raster = sweeps.plot_single_raster
         else:
             print(
