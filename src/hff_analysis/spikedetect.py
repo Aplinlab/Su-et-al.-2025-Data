@@ -591,12 +591,13 @@ def separate_sweep_phases(
         test_stim = 'mechanical'
         stim_value = mech_val
         cond_frequency = constants.DEFAULT_CONDITIONING_FREQUENCY
-        cond_duration = constants.SHORT_CONDITIONING_DURATION_SECONDS
+        cond_duration = constants.DEFAULT_CONDITIONING_DURATION_SECONDS
         if test == 'frequency':
             cond_frequency = stim_value
         elif test == 'amplitude':
             pass
         elif test == 'long-duration':
+            cond_frequency = constants.LONG_CONDITIONING_FREQUENCY
             cond_duration = constants.LONG_CONDITIONING_DURATION_SECONDS
         else:
             raise KeyError(f"Test type not recognised ({test}).")
