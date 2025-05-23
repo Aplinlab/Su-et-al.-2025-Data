@@ -1,26 +1,25 @@
 """Custom package for analysis of the Su et al. (2025) dataset.
 
 # Functions
-* `unique` -- if input list or DataFrame series only contains one unique
-value, returns it. Otherwise, raises AssertionError.
-
-## main_part1
-* `load_filereadsettings` -- loads saved variables from earlier run.
-* `read_adicht` -- extracts relevant data from LabChart recordings.
-* `update_outputs` -- generates updated outputs from FRS files.
-* `spikes_info` -- applies signal processing, epoch splitting, and peak
-detection to data extracted from LabChart.
-* `filter_spikes` -- culls peaks to isolate single-unit responses.
-* `plot_clusters` -- plots overlaid peaks and traces from all epochs.
-* `save_to_json` -- saves groups of variables to JSON format.
-
-## main_part2
-* `spikes_table` -- loads or builds summary of exported spike data.
 * `calculate_ssr` -- calculates mean spike rate over entire duration of
 each phase, separated by trial and stimulation modality.
+* `filter_spikes` -- culls peaks to isolate single-unit responses.
+* `load_filereadsettings` -- loads saved variables from earlier run.
+* `plot_clusters` -- plots overlaid peaks and traces from all epochs.
+* `plot_combined_raster` -- plots rasters for all trials in input.
 * `plot_combined_ssr` -- plots mean spike rate values for each phase and
 stimulation modality (i.e. averages all trials in input DataFrame).
-* `plot_combined_raster` -- plots rasters for all trials in input.
+* `read_adicht` -- extracts relevant data from LabChart recordings.
+* `save_to_json` -- saves groups of variables to JSON format.
+* `spikes_info` -- applies signal processing, epoch splitting, and peak
+detection to data extracted from LabChart.
+* `spikes_table` -- loads or builds summary of exported spike data.
+* `unique` -- if input list or DataFrame series only contains one unique
+value, returns it. Otherwise, raises AssertionError.
+* `update_outputs` -- generates updated outputs from FRS files.
+
+# Variables
+* `current_version` -- module version stored as `VersionNumber` object.
 
 # Compatibility
 This section lists requirements to maintain compatibility with specific
@@ -56,34 +55,40 @@ iterating the major version number.
 # TODO  Come up with method for deciding which ones are plotted
 # TODO Work out method for adding comment to start of recording/concatenating two recording segments
 # TODO  Necessary to get an extra trial out of HFF08-1
+# TODO  Also would be much better (but not strictly necessary) if we want to include mechanical long-duration trials
 # TODO Add animal ages to METADATA
 
-from .utils import unique
-from .base import (
+from .spikedetect import (
     load_filereadsettings,
     read_adicht,
-    update_outputs,
-    spikes_info,
+    spikes_info
+)
+from .spikefilter import (
     filter_spikes,
     plot_clusters,
-    save_to_json,
-    spikes_table,
-    calculate_ssr,
-    plot_combined_ssr,
-    plot_combined_raster
+    save_to_json
 )
+from .spikequantify import (
+    calculate_ssr,
+    plot_combined_raster,
+    plot_combined_ssr,
+    spikes_table
+)
+from .updater import update_outputs
+from .utils import (current_version, unique)
 
 __all__ = [
-    'unique',
-    'load_filereadsettings',
-    'read_adicht',
-    'update_outputs',
-    'spikes_info',
-    'filter_spikes',
-    'plot_clusters',
-    'save_to_json',
-    'spikes_table',
     'calculate_ssr',
+    'filter_spikes',
+    'load_filereadsettings',
+    'plot_clusters',
+    'plot_combined_raster',
     'plot_combined_ssr',
-    'plot_combined_raster'
+    'read_adicht',
+    'save_to_json',
+    'spikes_info',
+    'spikes_table',
+    'unique',
+    'update_outputs',
+    'current_version'
 ]

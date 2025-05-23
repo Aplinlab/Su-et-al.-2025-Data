@@ -4,6 +4,9 @@
 * `FileNameInfo` -- data extracted from LabChart filename.
 * `SpikeCriteria` -- set of criteria for isolating responses.
 * `FileReadSettings` -- stores all variables used in `main_part1`.
+
+# Variables
+* `adicht_filename_pattern` -- regex pattern for recording filenames.
 """
 
 import numpy as np
@@ -12,13 +15,12 @@ import re
 import typing
 
 from hff_analysis import constants
-from . import base
+from . import version
 
 
 # Regex pattern for parsing filenames:
-# It is compiled here once, rather than within a function, to reduce
-# unnecessary computations.
-adicht_regex_pattern = re.compile(constants.ADICHT_FILENAME_REGEX)
+# Compiled once, rather than within a function, to reduce computations.
+adicht_filename_pattern = re.compile(constants.ADICHT_FILENAME_REGEX)
 
 
 class FilenameInfo:
@@ -51,7 +53,7 @@ class FilenameInfo:
     @classmethod
     def from_filename(cls, filename: str):
         # Parse the input filename:
-        m = adicht_regex_pattern.search(filename)
+        m = adicht_filename_pattern.search(filename)
         try:
             extension = (
                 m.group('extension') if m.group('extension') # type: ignore
@@ -118,7 +120,7 @@ class FileReadSettings:
     # TODO Write a function which does the steps described
     def __init__(
             self,
-            version: base.VersionNumber,
+            version: version.VersionNumber,
             filename: str,
             repetition: int,
             recording_segment: int,
@@ -147,7 +149,7 @@ class FileReadSettings:
     @classmethod
     def from_dict(cls, dictionary: dict[str, typing.Any]):
         return cls(
-            base.VersionNumber(dictionary['version']),
+            version.VersionNumber(dictionary['version']),
             dictionary['filename'],
             dictionary['repetition'],
             dictionary['recording_segment'],

@@ -1,4 +1,7 @@
-"""#TODO Write module docstring.
+"""Class for storing version numbers.
+
+Implements methods for string conversion, comparison/equality, and
+checking compatibility.
 """
 
 import re
@@ -8,9 +11,8 @@ from hff_analysis import constants
 
 
 # Regex pattern for parsing version numbers:
-# It is compiled here once, rather than within a function, to reduce
-# unnecessary computations.
-version_regex_pattern = re.compile(constants.VERSION_REGEX)
+# Compiled once, rather than within a function, to reduce computations.
+version_pattern = re.compile(constants.VERSION_REGEX)
 
 
 class VersionNumber:
@@ -18,7 +20,7 @@ class VersionNumber:
             self,
             version_str: str
     ):
-        m = version_regex_pattern.search(version_str)
+        m = version_pattern.search(version_str)
         try:
             self.major = int(m.group('major')) # type: ignore
             self.minor = int(m.group('minor')) # type: ignore
@@ -32,6 +34,26 @@ class VersionNumber:
         
     def __str__(self):
         return f'v{self.major}.{self.minor}.{self.patch}'
+ 
+    def __eq__(self, other: object) -> bool:
+        try:
+            return (
+                self.major == other.major and # type: ignore
+                self.minor == other.minor and # type: ignore
+                self.patch == other.patch # type: ignore
+            )
+        except AttributeError:
+            return False
+ 
+    def __ne__(self, other: object) -> bool:
+        try:
+            return (
+                self.major != other.major or # type: ignore
+                self.minor != other.minor or # type: ignore
+                self.patch != other.patch # type: ignore
+            )
+        except AttributeError:
+            return False
         
     def __lt__(self, other: typing.Self) -> bool:
         if self.major < other.major:
@@ -65,26 +87,6 @@ class VersionNumber:
         ):
             return True
         else:
-            return False
- 
-    def __eq__(self, other: object) -> bool:
-        try:
-            return (
-                self.major == other.major and # type: ignore
-                self.minor == other.minor and # type: ignore
-                self.patch == other.patch # type: ignore
-            )
-        except AttributeError:
-            return False
- 
-    def __ne__(self, other: object) -> bool:
-        try:
-            return (
-                self.major != other.major or # type: ignore
-                self.minor != other.minor or # type: ignore
-                self.patch != other.patch # type: ignore
-            )
-        except AttributeError:
             return False
 
     def __gt__(self, other: typing.Self) -> bool:
