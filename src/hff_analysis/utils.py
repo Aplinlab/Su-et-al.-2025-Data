@@ -23,6 +23,7 @@ from . import constants
 
 
 current_version = classes.VersionNumber(constants.VERSION)
+T = typing.TypeVar('T')
 
 
 def confirm_save(
@@ -101,9 +102,7 @@ def save_plot(
     return
 
 
-def unique(
-        values: list | pd.Series,
-) -> typing.Any:
+def unique(values: typing.Sequence[T],) -> T:
     """Returns unique value in list or raises error if there isn't one.
     
     If `values` is a list or DataFrame series which contains only one
@@ -120,7 +119,4 @@ def unique(
         f"Supplied list contains multiple values: {unique}"
     )
     # Assign first element of `unique` to `value` variable and return:
-    value = None
-    for value in unique:
-        break
-    return value
+    return next(iter(unique))

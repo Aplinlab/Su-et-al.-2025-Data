@@ -25,6 +25,7 @@ import math
 import matplotlib.axes as axes
 import matplotlib.pyplot as plt
 from os import walk
+import numpy as np
 import pandas as pd
 import pathlib
 import statistics
@@ -410,7 +411,7 @@ def plot_single_raster(
     """Plots raster with rows separated by `row_split`."""
     # Ensure only one valid test type is present in input DataFrame:
     try:
-        test = utils.unique(spikes_df['Test'])
+        test = utils.unique(spikes_df['Test']) # type: ignore
         assert test == 'frequency' or test == 'amplitude'
     except AssertionError:
         print(
@@ -478,30 +479,28 @@ def plot_single_raster(
 
 def plot_single_rvt(
         spikes_df: pd.DataFrame,
+        unit_id: str,
         test: str,
         stim_type: str,
         phase: str,
         ax: axes.Axes | None = None
 ) -> None:
     # TODO write docstring and comments
-    # ! Completely untested
     if ax is None:
         ax = plt.gca()
-    spikes_df_stim = spikes_df.loc[spikes_df['Test Stimulus'] == stim_type]
-    spikes_df_phase = spikes_df_stim.loc[spikes_df_stim['Phase'] == phase]
+    stim_df = spikes_df.loc[spikes_df['Test Stimulus'] == stim_type]
+    phase_df = stim_df.loc[stim_df['Phase'] == phase]
     if test == 'frequency' or test == 'amplitude':
         filter_col = f'Test {test.capitalize()}'
         unit = f' {constants.TEST_UNITS[test]}'
     else:
         filter_col = 'Test Stimulus'
         unit = ''
-    filter_values = spikes_df_phase[filter_col].unique()
+    filter_values = np.sort(phase_df[filter_col].unique())
     for value in filter_values:
-        spikes_df_filtered = spikes_df_phase.loc[
-            spikes_df_phase[filter_col] == value
-        ]
-        frequency = utils.unique(spikes_df_filtered['Test Frequency'])
-        max_epoch_count = max(spikes_df_filtered['Total Epochs'])
+        filtered_df = phase_df.loc[phase_df[filter_col] == value]
+        frequency = utils.unique(filtered_df['Test Frequency'])
+        max_epoch_count = max(filtered_df['Total Epochs'])
         bin_width = min(math.floor(max_epoch_count/10), 100)
         bins = [x+bin_width/2 for x in range(
             0,
@@ -509,30 +508,34 @@ def plot_single_rvt(
             bin_width
         )]
         response_rates = [[] for _x in bins]
-        for trial_id in spikes_df_filtered['Trial ID'].unique():
-            spikes_df_trial = spikes_df_filtered.loc[
-                spikes_df_filtered['Trial ID'] == trial_id
+        for trial_id in filtered_df['Trial ID'].unique():
+            trial_df = filtered_df.loc[
+                filtered_df['Trial ID'] == trial_id
             ]
-            epoch_count = utils.unique(spikes_df_trial['Total Epochs'])
+            epoch_count = utils.unique(trial_df['Total Epochs'])
+            unique_epochs = trial_df['Epoch Number'].unique()
             for (i, x) in enumerate(range(
                 0,
                 math.floor(epoch_count/bin_width)*bin_width,
                 bin_width
             )):
-                response_rates[i].append(len(spikes_df_trial.loc[
-                    x<=spikes_df_trial['Epoch Number']<x+bin_width
-                ])/bin_width)
+                response_rates[i].append(
+                    sum(x<=float(epoch)<x+bin_width for epoch in unique_epochs)
+                    /bin_width
+                )
         mean_rates = [statistics.mean(x) for x in response_rates]
         ax.plot(
             [x/frequency for x in bins],
             mean_rates,
             label=f'{value}{unit}'
         )
+    # ? Temporary title - usually should just be `phase.capitalize()`:
+    title=f"{unit_id} {test} {stim_type} {phase}"
     plt.setp(
         ax,
         xlabel="Time (s)",
         ylabel="Mean spike rate per bin",
-        title=phase
+        title=title
     )
     ax.legend(
         prop={'size': constants.QUANTIFICATION_LEGEND_SIZE}
@@ -540,6 +543,11 @@ def plot_single_rvt(
     ax.set_ylim(
         -constants.QUANTIFICATION_YLIM_BORDER,
         1+constants.QUANTIFICATION_YLIM_BORDER
+    )
+    # ? Temporary solution for saving:
+    utils.save_plot(
+        'v2.3.2_temp',
+        title
     )
     return
 
@@ -607,7 +615,7 @@ def simple_spikerate_plotdf(
     #!mean calculation!
     # Check that only one test type is present in input DataFrame:
     try:
-        utils.unique(ssr_df['Test'])
+        utils.unique(ssr_df['Test']) # type: ignore
     except AssertionError:
         print(
             "Before running this function, filter input DataFrame to "

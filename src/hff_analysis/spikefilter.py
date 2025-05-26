@@ -265,8 +265,9 @@ def plot_clusters(
                 )
     # Prettify figure:
     plot_title = (
-        f'{animal_id.upper()}-{position} [{repetition}-{recording_segment}] ('
-        f'{constants.METADATA[animal_id.upper()][position]})'
+        f'{animal_id.upper()}-{position} [{repetition}-{recording_segment}] '
+        f'({constants.METADATA[animal_id.upper()][position]}) | ' +
+        test.capitalize()
     )
     for plot_id in range(1,3):
         plt.subplot(2, 1, plot_id)
