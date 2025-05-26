@@ -262,6 +262,8 @@ def spikes_info(
             test_frequency = triggers_by_phase.stim_value
         elif recording.test == 'amplitude':
             test_amplitude = triggers_by_phase.stim_value
+        elif recording.test == 'long-duration':
+            test_frequency = constants.LONG_CONDITIONING_FREQUENCY
         # Constrain signal_data to the current trial:
         signal_data_trial = recording.signal_data[
             marker.start_sample:marker.end_sample

@@ -5,7 +5,7 @@ Python library, and should not include anything else. Legacy constants
 can be found in `updater.py`.
 """
 
-VERSION = '2.3.2'
+VERSION = '2.3.3'
 
 
 ####################### *USER-DEFINED CONSTANTS* #######################
