@@ -1,0 +1,29 @@
+{
+    "json_type": "frs",
+    "version": "v3.0.0",
+    "repetition": 0,
+    "recording_id": 0,
+    "filename": "hff19_pos3_freqsweep",
+    "epoch_timing_ms": [
+        0,
+        10
+    ],
+    "skip_superfast": false,
+    "spike_criteria": {
+        "mechanical": {
+            "latency_min_ms": null,
+            "latency_max_ms": null,
+            "size_min_uV": 575,
+            "size_max_uV": 775
+        },
+        "electrical": {
+            "latency_min_ms": 4.2,
+            "latency_max_ms": 4.925,
+            "size_min_uV": 400,
+            "size_max_uV": 630
+        }
+    },
+    "exclude_frequencies": [],
+    "exclude_amplitudes": [],
+    "enforce_max_failrate": false
+}

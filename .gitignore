@@ -1,6 +1,12 @@
 /*/
-!/src/
+!/misc
+!/src
 /src/*/
 !/src/hff_analysis
+!/src/outputs
+/src/outputs/archive
+/src/outputs/JSON/epochs
+/src/outputs/JSON/quantification
+!/src/plot_data
 /src/hff_analysis/__pycache__
-/src/hff_analysis/classes/__pycache__
+/src/hff_analysis/constants/__pycache__

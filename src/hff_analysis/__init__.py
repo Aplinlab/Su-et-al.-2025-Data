@@ -3,7 +3,7 @@
 # Functions
 * `calculate_ssr` -- calculates mean spike rate over entire duration of
 each phase, separated by trial and stimulation modality.
-* `filter_spikes` -- culls peaks to isolate single-unit responses.
+* `filter_trials` -- culls peaks to isolate single-unit responses.
 * `load_filereadsettings` -- loads saved variables from earlier run.
 * `plot_clusters` -- plots overlaid peaks and traces from all epochs.
 * `plot_combined_raster` -- plots rasters for all trials in input.
@@ -20,6 +20,7 @@ value, returns it. Otherwise, raises AssertionError.
 
 # Variables
 * `current_version` -- module version stored as `VersionNumber` object.
+* `MAXIMUM_ISI_FAILRATE` -- passing score on ISI test (if enforced).
 
 # Compatibility
 This section lists requirements to maintain compatibility with specific
@@ -30,65 +31,77 @@ iterating the major version number.
 
 ## Version 1
 ### v1.1.0
-* FRS files include keys for `exclude_frequencies` and
-`exclude_amplitudes`, in addition to those present earlier.
+* `exclude_frequencies` and `exclude_amplitudes` keys introduced for FRS
+files. Default value for earlier files should be `[]`.
 
-### v1.0.0 - 1.0.2
-* FRS files only include keys for 'version', 'filename',
-'recording_segment', 'epoch_timing_ms', 'threshold', and
-'spike_criteria'. Default values must be supplied for other keys.
+## Version 2
+### v2.0.0
+* `repetition` key introduced for FRS files. Default value for earlier
+files should be `0`.
+* `json_type` key introduced for all JSON outputs. Value for earlier
+files should match specific file.
+
+### v2.4.0
+* `test_frequency_minor` key introduced for spikes and epochs files.
+Default value for earlier files should be `-1.0`.
 """
 
-# TODO Implement long
+# TODO implement check to warn of units which do not pass ISI failrate
+# TODO update docstrings and comments
 # TODO Identify units which don't respond well at 10 Hz (check ssr_df)
-# TODO Check that ssr has correct average for units with multiple reps
-# TODO Apply 200 Hz high-pass filter to sliced epoch before spike detection
-# TODO  New pipeline?
-# TODO      1a. Split epochs, apply per-epoch filters
-# TODO      1b. Get baseline, calculate SD, detect spikes
-# TODO      1c. Export epochs, spikes, baseline, SD
-# TODO      2. Test and plot filters
-# TODO      3. Apply filters and export
-# TODO Automatically set thresholds using standard deviations
-# TODO  Use gaps between trials to set baseline - check timing
-# TODO Add discarded units to cluster plots
-# TODO  Come up with method for deciding which ones are plotted
-# TODO Work out method for adding comment to start of recording/concatenating two recording segments
-# TODO  Necessary to get an extra trial out of HFF08-1
-# TODO  Also would be much better (but not strictly necessary) if we want to include mechanical long-duration trials
-# TODO Add animal ages to METADATA
+# TODO Stretch goals to get a few more datapoints
+#   Concatenate two recording segments (HFF08-1)
+#       Also necessary for mechanical long-duration (very few examples)
+#   Exclude mechanical nine-one from a particular unit
+#       Actually this can be done manually in main_part2
+#   Some other stuff
 
-from .spikedetect import (
+
+from .spike_extraction import (
+    filter_trials,
     load_filereadsettings,
+    plot_clusters,
     read_adicht,
+    save_to_json,
     spikes_info
 )
-from .spikefilter import (
-    filter_spikes,
-    plot_clusters,
-    save_to_json
-)
-from .spikequantify import (
-    calculate_ssr,
-    plot_combined_raster,
-    plot_combined_ssr,
+from .quantification import (
+    longduration_probability,
+    sweeps_probability,
+    nineone_probability,
+    peak_property_changes,
+    model_output,
+    unit_type_effects,
+    initial_properties,
+    normalise_conduction_velocity,
+    plot_length_estimates,
+    plot_unit_inspection_figs,
     spikes_table
 )
 from .updater import update_outputs
 from .utils import (current_version, unique)
+from .constants.core import MAXIMUM_ISI_FAILRATE
 
-__all__ = [
-    'calculate_ssr',
-    'filter_spikes',
+__all__ = (
+    'longduration_probability',
+    'sweeps_probability',
+    'nineone_probability',
+    'peak_property_changes',
+    'filter_trials',
+    'initial_properties',
     'load_filereadsettings',
+    'model_output',
+    'normalise_conduction_velocity',
     'plot_clusters',
-    'plot_combined_raster',
-    'plot_combined_ssr',
+    'plot_length_estimates',
+    'plot_unit_inspection_figs',
     'read_adicht',
     'save_to_json',
     'spikes_info',
     'spikes_table',
     'unique',
+    'unit_type_effects',
     'update_outputs',
-    'current_version'
-]
+    'current_version',
+    'MAXIMUM_ISI_FAILRATE'
+)

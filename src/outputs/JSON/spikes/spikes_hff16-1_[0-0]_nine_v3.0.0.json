@@ -1,0 +1,2117 @@
+{
+    "json_type": "spikes",
+    "version": "v3.0.0",
+    "repetition": 0,
+    "recording_id": 0,
+    "isi_result": {
+        "failures": 0,
+        "total": 267,
+        "result": 0.0
+    },
+    "spike_criteria": {
+        "mechanical": {
+            "latency_min_ms": null,
+            "latency_max_ms": null,
+            "size_min_uV": 400,
+            "size_max_uV": 1000
+        },
+        "electrical": {
+            "latency_min_ms": 2.3,
+            "latency_max_ms": 5,
+            "size_min_uV": 400,
+            "size_max_uV": 1000
+        }
+    },
+    "max_failrate": null,
+    "spikes": [
+        {
+            "animal_id": "hff16",
+            "position": 1,
+            "test": "nine-one",
+            "test_stim": "electrical",
+            "test_frequency": 90.0,
+            "test_frequency_minor": 10.0,
+            "test_amplitude": 1.0,
+            "repetition": 0,
+            "stddev": 55.95368622922614,
+            "threshold": 279.7684311461307,
+            "mech_criteria": {
+                "latency_min_ms": null,
+                "latency_max_ms": null,
+                "size_min_uV": 400,
+                "size_max_uV": 1000
+            },
+            "elec_criteria": {
+                "latency_min_ms": 2.3,
+                "latency_max_ms": 5,
+                "size_min_uV": 400,
+                "size_max_uV": 1000
+            },
+            "conditioning": {
+                "epochs_mech": 30,
+                "epochs_elec": 270,
+                "mechanical": {},
+                "electrical": {
+                    "0": [
+                        {
+                            "epoch_number": 0,
+                            "time_ms": 2.5,
+                            "size_uV": 902.088277077942
+                        }
+                    ],
+                    "1": [
+                        {
+                            "epoch_number": 1,
+                            "time_ms": 2.475,
+                            "size_uV": 826.5142879382726
+                        }
+                    ],
+                    "2": [
+                        {
+                            "epoch_number": 2,
+                            "time_ms": 2.5,
+                            "size_uV": 864.0919678752375
+                        }
+                    ],
+                    "3": [
+                        {
+                            "epoch_number": 3,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 805.3787850331036
+                        }
+                    ],
+                    "4": [
+                        {
+                            "epoch_number": 4,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 782.5719961726599
+                        }
+                    ],
+                    "5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 2.575,
+                            "size_uV": 824.1335302717406
+                        }
+                    ],
+                    "6": [
+                        {
+                            "epoch_number": 6,
+                            "time_ms": 2.575,
+                            "size_uV": 786.4874422908555
+                        }
+                    ],
+                    "7": [
+                        {
+                            "epoch_number": 7,
+                            "time_ms": 2.6,
+                            "size_uV": 795.5733401482826
+                        }
+                    ],
+                    "8": [
+                        {
+                            "epoch_number": 8,
+                            "time_ms": 2.6,
+                            "size_uV": 813.4529632031869
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.575,
+                            "size_uV": 830.4679954778213
+                        }
+                    ],
+                    "16": [
+                        {
+                            "epoch_number": 16,
+                            "time_ms": 2.475,
+                            "size_uV": 817.3479280660943
+                        }
+                    ],
+                    "17": [
+                        {
+                            "epoch_number": 17,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 806.8375316228429
+                        }
+                    ],
+                    "18": [
+                        {
+                            "epoch_number": 18,
+                            "time_ms": 2.6,
+                            "size_uV": 835.8105541815222
+                        }
+                    ],
+                    "19": [
+                        {
+                            "epoch_number": 19,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 814.253560050346
+                        }
+                    ],
+                    "20": [
+                        {
+                            "epoch_number": 20,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 785.7224319422276
+                        }
+                    ],
+                    "21": [
+                        {
+                            "epoch_number": 21,
+                            "time_ms": 2.575,
+                            "size_uV": 824.461517545892
+                        }
+                    ],
+                    "22": [
+                        {
+                            "epoch_number": 22,
+                            "time_ms": 2.575,
+                            "size_uV": 783.5033040774498
+                        }
+                    ],
+                    "23": [
+                        {
+                            "epoch_number": 23,
+                            "time_ms": 2.6,
+                            "size_uV": 827.1642077843306
+                        }
+                    ],
+                    "24": [
+                        {
+                            "epoch_number": 24,
+                            "time_ms": 2.6,
+                            "size_uV": 793.1148283169924
+                        }
+                    ],
+                    "25": [
+                        {
+                            "epoch_number": 25,
+                            "time_ms": 2.6,
+                            "size_uV": 825.0350355731329
+                        }
+                    ],
+                    "26": [
+                        {
+                            "epoch_number": 26,
+                            "time_ms": 2.625,
+                            "size_uV": 804.2598312827292
+                        }
+                    ],
+                    "34": [
+                        {
+                            "epoch_number": 34,
+                            "time_ms": 2.6,
+                            "size_uV": 851.2483938511268
+                        }
+                    ],
+                    "35": [
+                        {
+                            "epoch_number": 35,
+                            "time_ms": 2.475,
+                            "size_uV": 757.3259658752204
+                        }
+                    ],
+                    "36": [
+                        {
+                            "epoch_number": 36,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 770.0056857111039
+                        }
+                    ],
+                    "37": [
+                        {
+                            "epoch_number": 37,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 855.3812934188978
+                        }
+                    ],
+                    "38": [
+                        {
+                            "epoch_number": 38,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 773.8985070749746
+                        }
+                    ],
+                    "39": [
+                        {
+                            "epoch_number": 39,
+                            "time_ms": 2.575,
+                            "size_uV": 865.6719437511713
+                        }
+                    ],
+                    "40": [
+                        {
+                            "epoch_number": 40,
+                            "time_ms": 2.575,
+                            "size_uV": 733.5935795994419
+                        }
+                    ],
+                    "41": [
+                        {
+                            "epoch_number": 41,
+                            "time_ms": 2.625,
+                            "size_uV": 881.5729802954452
+                        }
+                    ],
+                    "42": [
+                        {
+                            "epoch_number": 42,
+                            "time_ms": 2.625,
+                            "size_uV": 758.7794370431275
+                        }
+                    ],
+                    "43": [
+                        {
+                            "epoch_number": 43,
+                            "time_ms": 2.625,
+                            "size_uV": 869.5690390896483
+                        }
+                    ],
+                    "44": [
+                        {
+                            "epoch_number": 44,
+                            "time_ms": 2.625,
+                            "size_uV": 738.3474477353719
+                        }
+                    ],
+                    "54": [
+                        {
+                            "epoch_number": 54,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 811.4683878532816
+                        }
+                    ],
+                    "55": [
+                        {
+                            "epoch_number": 55,
+                            "time_ms": 2.475,
+                            "size_uV": 832.9582615525704
+                        }
+                    ],
+                    "56": [
+                        {
+                            "epoch_number": 56,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 807.029542522629
+                        }
+                    ],
+                    "57": [
+                        {
+                            "epoch_number": 57,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 849.3786879214297
+                        }
+                    ],
+                    "58": [
+                        {
+                            "epoch_number": 58,
+                            "time_ms": 2.575,
+                            "size_uV": 787.8125231111017
+                        }
+                    ],
+                    "59": [
+                        {
+                            "epoch_number": 59,
+                            "time_ms": 2.575,
+                            "size_uV": 840.3409926174245
+                        }
+                    ],
+                    "60": [
+                        {
+                            "epoch_number": 60,
+                            "time_ms": 2.6,
+                            "size_uV": 790.3823239228266
+                        }
+                    ],
+                    "61": [
+                        {
+                            "epoch_number": 61,
+                            "time_ms": 2.6,
+                            "size_uV": 841.8430978727059
+                        }
+                    ],
+                    "62": [
+                        {
+                            "epoch_number": 62,
+                            "time_ms": 2.6,
+                            "size_uV": 786.8592197546419
+                        }
+                    ],
+                    "72": [
+                        {
+                            "epoch_number": 72,
+                            "time_ms": 2.575,
+                            "size_uV": 782.1730288060361
+                        }
+                    ],
+                    "73": [
+                        {
+                            "epoch_number": 73,
+                            "time_ms": 2.475,
+                            "size_uV": 888.8578011852846
+                        }
+                    ],
+                    "74": [
+                        {
+                            "epoch_number": 74,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 767.4478019344418
+                        }
+                    ],
+                    "75": [
+                        {
+                            "epoch_number": 75,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 902.4272523364006
+                        }
+                    ],
+                    "76": [
+                        {
+                            "epoch_number": 76,
+                            "time_ms": 2.575,
+                            "size_uV": 751.9839531011598
+                        }
+                    ],
+                    "77": [
+                        {
+                            "epoch_number": 77,
+                            "time_ms": 2.575,
+                            "size_uV": 873.646035821127
+                        }
+                    ],
+                    "78": [
+                        {
+                            "epoch_number": 78,
+                            "time_ms": 2.6,
+                            "size_uV": 745.9129883650886
+                        }
+                    ],
+                    "79": [
+                        {
+                            "epoch_number": 79,
+                            "time_ms": 2.625,
+                            "size_uV": 876.5776135337893
+                        }
+                    ],
+                    "80": [
+                        {
+                            "epoch_number": 80,
+                            "time_ms": 2.6,
+                            "size_uV": 758.5735714372028
+                        }
+                    ],
+                    "91": [
+                        {
+                            "epoch_number": 91,
+                            "time_ms": 2.575,
+                            "size_uV": 894.6764013488641
+                        }
+                    ],
+                    "92": [
+                        {
+                            "epoch_number": 92,
+                            "time_ms": 2.475,
+                            "size_uV": 775.0060646714736
+                        }
+                    ],
+                    "93": [
+                        {
+                            "epoch_number": 93,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 854.7667748397313
+                        }
+                    ],
+                    "94": [
+                        {
+                            "epoch_number": 94,
+                            "time_ms": 2.575,
+                            "size_uV": 770.6516671860396
+                        }
+                    ],
+                    "95": [
+                        {
+                            "epoch_number": 95,
+                            "time_ms": 2.575,
+                            "size_uV": 837.9040024020384
+                        }
+                    ],
+                    "96": [
+                        {
+                            "epoch_number": 96,
+                            "time_ms": 2.575,
+                            "size_uV": 767.9700755595948
+                        }
+                    ],
+                    "97": [
+                        {
+                            "epoch_number": 97,
+                            "time_ms": 2.6,
+                            "size_uV": 867.6030682409495
+                        }
+                    ],
+                    "98": [
+                        {
+                            "epoch_number": 98,
+                            "time_ms": 2.625,
+                            "size_uV": 760.0262200372968
+                        }
+                    ],
+                    "109": [
+                        {
+                            "epoch_number": 109,
+                            "time_ms": 2.6,
+                            "size_uV": 781.4509769563588
+                        }
+                    ],
+                    "110": [
+                        {
+                            "epoch_number": 110,
+                            "time_ms": 2.5,
+                            "size_uV": 861.3602318466399
+                        }
+                    ],
+                    "111": [
+                        {
+                            "epoch_number": 111,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 699.2314784409036
+                        }
+                    ],
+                    "112": [
+                        {
+                            "epoch_number": 112,
+                            "time_ms": 2.575,
+                            "size_uV": 861.769704872627
+                        }
+                    ],
+                    "113": [
+                        {
+                            "epoch_number": 113,
+                            "time_ms": 2.575,
+                            "size_uV": 717.5849608818727
+                        }
+                    ],
+                    "114": [
+                        {
+                            "epoch_number": 114,
+                            "time_ms": 2.6,
+                            "size_uV": 863.2489829638703
+                        }
+                    ],
+                    "115": [
+                        {
+                            "epoch_number": 115,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 758.0775135319876
+                        }
+                    ],
+                    "116": [
+                        {
+                            "epoch_number": 116,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 863.1244012213995
+                        }
+                    ],
+                    "129": [
+                        {
+                            "epoch_number": 129,
+                            "time_ms": 2.625,
+                            "size_uV": 601.6890567527958
+                        }
+                    ],
+                    "130": [
+                        {
+                            "epoch_number": 130,
+                            "time_ms": 2.475,
+                            "size_uV": 863.5281123855813
+                        }
+                    ],
+                    "131": [
+                        {
+                            "epoch_number": 131,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 635.6319046878356
+                        }
+                    ],
+                    "132": [
+                        {
+                            "epoch_number": 132,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 863.0878153629155
+                        }
+                    ],
+                    "133": [
+                        {
+                            "epoch_number": 133,
+                            "time_ms": 2.575,
+                            "size_uV": 628.2173156115186
+                        }
+                    ],
+                    "134": [
+                        {
+                            "epoch_number": 134,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 852.4228056080079
+                        }
+                    ],
+                    "146": [
+                        {
+                            "epoch_number": 146,
+                            "time_ms": 2.625,
+                            "size_uV": 897.4058120532895
+                        }
+                    ],
+                    "147": [
+                        {
+                            "epoch_number": 147,
+                            "time_ms": 2.475,
+                            "size_uV": 858.4736453274668
+                        }
+                    ],
+                    "148": [
+                        {
+                            "epoch_number": 148,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 812.2322753088183
+                        }
+                    ],
+                    "149": [
+                        {
+                            "epoch_number": 149,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 820.2423209108863
+                        }
+                    ],
+                    "150": [
+                        {
+                            "epoch_number": 150,
+                            "time_ms": 2.575,
+                            "size_uV": 815.8565707680065
+                        }
+                    ],
+                    "151": [
+                        {
+                            "epoch_number": 151,
+                            "time_ms": 2.575,
+                            "size_uV": 831.1607325698278
+                        }
+                    ],
+                    "152": [
+                        {
+                            "epoch_number": 152,
+                            "time_ms": 2.6,
+                            "size_uV": 819.6952580248058
+                        }
+                    ],
+                    "165": [
+                        {
+                            "epoch_number": 165,
+                            "time_ms": 2.6,
+                            "size_uV": 912.4636888977752
+                        }
+                    ],
+                    "166": [
+                        {
+                            "epoch_number": 166,
+                            "time_ms": 2.475,
+                            "size_uV": 782.2178942665123
+                        }
+                    ],
+                    "167": [
+                        {
+                            "epoch_number": 167,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 842.2377559192274
+                        }
+                    ],
+                    "168": [
+                        {
+                            "epoch_number": 168,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 782.0172855218341
+                        }
+                    ],
+                    "169": [
+                        {
+                            "epoch_number": 169,
+                            "time_ms": 2.575,
+                            "size_uV": 851.4330121132593
+                        }
+                    ],
+                    "170": [
+                        {
+                            "epoch_number": 170,
+                            "time_ms": 2.575,
+                            "size_uV": 763.5741730306004
+                        }
+                    ],
+                    "184": [
+                        {
+                            "epoch_number": 184,
+                            "time_ms": 2.575,
+                            "size_uV": 838.654870650894
+                        }
+                    ],
+                    "185": [
+                        {
+                            "epoch_number": 185,
+                            "time_ms": 2.475,
+                            "size_uV": 840.9571522429217
+                        }
+                    ],
+                    "186": [
+                        {
+                            "epoch_number": 186,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 779.5627230420575
+                        }
+                    ],
+                    "187": [
+                        {
+                            "epoch_number": 187,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 800.3339197478201
+                        }
+                    ],
+                    "188": [
+                        {
+                            "epoch_number": 188,
+                            "time_ms": 2.575,
+                            "size_uV": 802.1267749758521
+                        }
+                    ],
+                    "200": [
+                        {
+                            "epoch_number": 200,
+                            "time_ms": 2.625,
+                            "size_uV": 825.6633872634709
+                        }
+                    ],
+                    "201": [
+                        {
+                            "epoch_number": 201,
+                            "time_ms": 2.475,
+                            "size_uV": 843.4438531816481
+                        }
+                    ],
+                    "202": [
+                        {
+                            "epoch_number": 202,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 771.4763878724378
+                        }
+                    ],
+                    "203": [
+                        {
+                            "epoch_number": 203,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 830.3670327153782
+                        }
+                    ],
+                    "204": [
+                        {
+                            "epoch_number": 204,
+                            "time_ms": 2.575,
+                            "size_uV": 761.7561395537942
+                        }
+                    ],
+                    "205": [
+                        {
+                            "epoch_number": 205,
+                            "time_ms": 2.575,
+                            "size_uV": 833.4620707602461
+                        }
+                    ],
+                    "206": [
+                        {
+                            "epoch_number": 206,
+                            "time_ms": 2.6,
+                            "size_uV": 811.4228762630821
+                        }
+                    ],
+                    "221": [
+                        {
+                            "epoch_number": 221,
+                            "time_ms": 2.625,
+                            "size_uV": 869.2916716622886
+                        }
+                    ],
+                    "222": [
+                        {
+                            "epoch_number": 222,
+                            "time_ms": 2.475,
+                            "size_uV": 783.5751148323673
+                        }
+                    ],
+                    "223": [
+                        {
+                            "epoch_number": 223,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 825.0134771747007
+                        }
+                    ],
+                    "224": [
+                        {
+                            "epoch_number": 224,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 812.3235843732764
+                        }
+                    ],
+                    "235": [
+                        {
+                            "epoch_number": 235,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 795.6771910887722
+                        }
+                    ],
+                    "236": [
+                        {
+                            "epoch_number": 236,
+                            "time_ms": 2.475,
+                            "size_uV": 797.1985447554036
+                        }
+                    ],
+                    "237": [
+                        {
+                            "epoch_number": 237,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 835.8538307737143
+                        }
+                    ],
+                    "238": [
+                        {
+                            "epoch_number": 238,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 816.2172415304603
+                        }
+                    ],
+                    "239": [
+                        {
+                            "epoch_number": 239,
+                            "time_ms": 2.575,
+                            "size_uV": 798.8977250999242
+                        }
+                    ],
+                    "240": [
+                        {
+                            "epoch_number": 240,
+                            "time_ms": 2.575,
+                            "size_uV": 812.727117561737
+                        }
+                    ],
+                    "241": [
+                        {
+                            "epoch_number": 241,
+                            "time_ms": 2.575,
+                            "size_uV": 811.9357174949816
+                        }
+                    ],
+                    "242": [
+                        {
+                            "epoch_number": 242,
+                            "time_ms": 2.625,
+                            "size_uV": 816.415885650616
+                        }
+                    ],
+                    "253": [
+                        {
+                            "epoch_number": 253,
+                            "time_ms": 2.575,
+                            "size_uV": 798.3069484196511
+                        }
+                    ],
+                    "254": [
+                        {
+                            "epoch_number": 254,
+                            "time_ms": 2.475,
+                            "size_uV": 819.9743714658217
+                        }
+                    ],
+                    "255": [
+                        {
+                            "epoch_number": 255,
+                            "time_ms": 2.5,
+                            "size_uV": 785.1293866115882
+                        }
+                    ],
+                    "256": [
+                        {
+                            "epoch_number": 256,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 823.493195359849
+                        }
+                    ],
+                    "257": [
+                        {
+                            "epoch_number": 257,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 796.1066563791057
+                        }
+                    ],
+                    "258": [
+                        {
+                            "epoch_number": 258,
+                            "time_ms": 2.575,
+                            "size_uV": 826.7846946768564
+                        }
+                    ],
+                    "259": [
+                        {
+                            "epoch_number": 259,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 800.6954347950017
+                        }
+                    ],
+                    "260": [
+                        {
+                            "epoch_number": 260,
+                            "time_ms": 2.6,
+                            "size_uV": 851.6199437171198
+                        }
+                    ],
+                    "262": [
+                        {
+                            "epoch_number": 262,
+                            "time_ms": 2.625,
+                            "size_uV": 819.3352510695466
+                        }
+                    ],
+                    "263": [
+                        {
+                            "epoch_number": 263,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 805.6293270066112
+                        }
+                    ],
+                    "264": [
+                        {
+                            "epoch_number": 264,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 798.7353170266991
+                        }
+                    ],
+                    "265": [
+                        {
+                            "epoch_number": 265,
+                            "time_ms": 2.575,
+                            "size_uV": 807.4552345771666
+                        }
+                    ],
+                    "266": [
+                        {
+                            "epoch_number": 266,
+                            "time_ms": 2.575,
+                            "size_uV": 826.241457389961
+                        }
+                    ],
+                    "267": [
+                        {
+                            "epoch_number": 267,
+                            "time_ms": 2.6,
+                            "size_uV": 807.4345004147262
+                        }
+                    ],
+                    "268": [
+                        {
+                            "epoch_number": 268,
+                            "time_ms": 2.575,
+                            "size_uV": 805.8241744304662
+                        }
+                    ],
+                    "269": [
+                        {
+                            "epoch_number": 269,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 804.4649755497228
+                        }
+                    ]
+                }
+            },
+            "interleaved": {
+                "epochs_mech": 75,
+                "epochs_elec": 75,
+                "mechanical": {},
+                "electrical": {
+                    "11": [
+                        {
+                            "epoch_number": 11,
+                            "time_ms": 2.575,
+                            "size_uV": 780.0132657731557
+                        }
+                    ],
+                    "12": [
+                        {
+                            "epoch_number": 12,
+                            "time_ms": 2.575,
+                            "size_uV": 770.2389502137893
+                        }
+                    ],
+                    "13": [
+                        {
+                            "epoch_number": 13,
+                            "time_ms": 2.6,
+                            "size_uV": 779.6728573181317
+                        }
+                    ],
+                    "14": [
+                        {
+                            "epoch_number": 14,
+                            "time_ms": 2.6,
+                            "size_uV": 756.5810988552194
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.625,
+                            "size_uV": 756.3171904441872
+                        }
+                    ],
+                    "16": [
+                        {
+                            "epoch_number": 16,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 740.5650726574156
+                        }
+                    ],
+                    "27": [
+                        {
+                            "epoch_number": 27,
+                            "time_ms": 2.575,
+                            "size_uV": 819.229985907242
+                        }
+                    ],
+                    "28": [
+                        {
+                            "epoch_number": 28,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 823.8122221852971
+                        }
+                    ],
+                    "29": [
+                        {
+                            "epoch_number": 29,
+                            "time_ms": 2.575,
+                            "size_uV": 826.3248963316668
+                        }
+                    ],
+                    "30": [
+                        {
+                            "epoch_number": 30,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 803.2215035730426
+                        }
+                    ],
+                    "31": [
+                        {
+                            "epoch_number": 31,
+                            "time_ms": 2.625,
+                            "size_uV": 842.9408600362781
+                        }
+                    ],
+                    "39": [
+                        {
+                            "epoch_number": 39,
+                            "time_ms": 2.6,
+                            "size_uV": 821.0906206007311
+                        }
+                    ],
+                    "40": [
+                        {
+                            "epoch_number": 40,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 851.1478314567721
+                        }
+                    ],
+                    "41": [
+                        {
+                            "epoch_number": 41,
+                            "time_ms": 2.6,
+                            "size_uV": 844.1797350816462
+                        }
+                    ],
+                    "50": [
+                        {
+                            "epoch_number": 50,
+                            "time_ms": 2.6,
+                            "size_uV": 853.2139836844478
+                        }
+                    ],
+                    "51": [
+                        {
+                            "epoch_number": 51,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 841.9354218803741
+                        }
+                    ],
+                    "52": [
+                        {
+                            "epoch_number": 52,
+                            "time_ms": 2.575,
+                            "size_uV": 827.4692304503063
+                        }
+                    ],
+                    "53": [
+                        {
+                            "epoch_number": 53,
+                            "time_ms": 2.6,
+                            "size_uV": 838.7420639265662
+                        }
+                    ],
+                    "54": [
+                        {
+                            "epoch_number": 54,
+                            "time_ms": 2.6,
+                            "size_uV": 821.7282576527514
+                        }
+                    ],
+                    "61": [
+                        {
+                            "epoch_number": 61,
+                            "time_ms": 2.6,
+                            "size_uV": 825.8579608727536
+                        }
+                    ],
+                    "62": [
+                        {
+                            "epoch_number": 62,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 805.7076126640462
+                        }
+                    ],
+                    "63": [
+                        {
+                            "epoch_number": 63,
+                            "time_ms": 2.6,
+                            "size_uV": 819.8830488641354
+                        }
+                    ],
+                    "64": [
+                        {
+                            "epoch_number": 64,
+                            "time_ms": 2.6,
+                            "size_uV": 820.1143157423624
+                        }
+                    ],
+                    "65": [
+                        {
+                            "epoch_number": 65,
+                            "time_ms": 2.6,
+                            "size_uV": 810.3627365897211
+                        }
+                    ],
+                    "72": [
+                        {
+                            "epoch_number": 72,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 828.2328207168833
+                        }
+                    ],
+                    "73": [
+                        {
+                            "epoch_number": 73,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 822.1866561640235
+                        }
+                    ],
+                    "74": [
+                        {
+                            "epoch_number": 74,
+                            "time_ms": 2.6,
+                            "size_uV": 812.0745005443005
+                        }
+                    ]
+                }
+            },
+            "recovery": {
+                "epochs_mech": 19,
+                "epochs_elec": 19,
+                "mechanical": {},
+                "electrical": {
+                    "0": [
+                        {
+                            "epoch_number": 0,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 889.6509685934883
+                        }
+                    ],
+                    "1": [
+                        {
+                            "epoch_number": 1,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 787.7829525585953
+                        }
+                    ],
+                    "2": [
+                        {
+                            "epoch_number": 2,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 778.7564574526727
+                        }
+                    ],
+                    "3": [
+                        {
+                            "epoch_number": 3,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 855.5320540217089
+                        }
+                    ],
+                    "4": [
+                        {
+                            "epoch_number": 4,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 917.8134813183966
+                        }
+                    ],
+                    "5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 828.4322808011485
+                        }
+                    ],
+                    "6": [
+                        {
+                            "epoch_number": 6,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 836.6738516422178
+                        }
+                    ],
+                    "7": [
+                        {
+                            "epoch_number": 7,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 737.2030396334787
+                        }
+                    ],
+                    "8": [
+                        {
+                            "epoch_number": 8,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 821.9177442770326
+                        }
+                    ],
+                    "9": [
+                        {
+                            "epoch_number": 9,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 856.1378012471602
+                        }
+                    ],
+                    "10": [
+                        {
+                            "epoch_number": 10,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 855.65630740975
+                        }
+                    ],
+                    "11": [
+                        {
+                            "epoch_number": 11,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 840.8532094373688
+                        }
+                    ],
+                    "12": [
+                        {
+                            "epoch_number": 12,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 848.9397294611431
+                        }
+                    ],
+                    "13": [
+                        {
+                            "epoch_number": 13,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 822.0366738867008
+                        }
+                    ],
+                    "14": [
+                        {
+                            "epoch_number": 14,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 835.3347136730501
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.5,
+                            "size_uV": 792.0115428283189
+                        }
+                    ],
+                    "16": [
+                        {
+                            "epoch_number": 16,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 858.3445452102798
+                        }
+                    ],
+                    "17": [
+                        {
+                            "epoch_number": 17,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 870.3983245114528
+                        }
+                    ],
+                    "18": [
+                        {
+                            "epoch_number": 18,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 905.815165936428
+                        }
+                    ]
+                }
+            },
+            "rejected": {
+                "epochs_mech": 0,
+                "epochs_elec": 15,
+                "mechanical": {},
+                "electrical": {
+                    "cond-35": [
+                        {
+                            "epoch_number": 35,
+                            "time_ms": 1.4000000000000001,
+                            "size_uV": 288.1570202218441
+                        }
+                    ],
+                    "cond-36": [
+                        {
+                            "epoch_number": 36,
+                            "time_ms": 1.4000000000000001,
+                            "size_uV": 300.560774699654
+                        }
+                    ],
+                    "cond-38": [
+                        {
+                            "epoch_number": 38,
+                            "time_ms": 1.4000000000000001,
+                            "size_uV": 290.13296283126004
+                        }
+                    ],
+                    "cond-42": [
+                        {
+                            "epoch_number": 42,
+                            "time_ms": 1.425,
+                            "size_uV": 293.53217588883837
+                        }
+                    ],
+                    "cond-45": [
+                        {
+                            "epoch_number": 45,
+                            "time_ms": 1.425,
+                            "size_uV": 306.1887184589847
+                        }
+                    ],
+                    "cond-47": [
+                        {
+                            "epoch_number": 47,
+                            "time_ms": 1.5250000000000001,
+                            "size_uV": 284.62876122489325
+                        }
+                    ],
+                    "cond-49": [
+                        {
+                            "epoch_number": 49,
+                            "time_ms": 1.5250000000000001,
+                            "size_uV": 316.0378866446166
+                        }
+                    ],
+                    "cond-51": [
+                        {
+                            "epoch_number": 51,
+                            "time_ms": 1.55,
+                            "size_uV": 284.0360733030171
+                        }
+                    ],
+                    "cond-53": [
+                        {
+                            "epoch_number": 53,
+                            "time_ms": 1.55,
+                            "size_uV": 287.44873712212376
+                        }
+                    ],
+                    "cond-63": [
+                        {
+                            "epoch_number": 63,
+                            "time_ms": 1.675,
+                            "size_uV": 285.7015441491193
+                        }
+                    ],
+                    "cond-67": [
+                        {
+                            "epoch_number": 67,
+                            "time_ms": 1.725,
+                            "size_uV": 289.6983936261014
+                        }
+                    ],
+                    "cond-69": [
+                        {
+                            "epoch_number": 69,
+                            "time_ms": 1.7750000000000001,
+                            "size_uV": 284.31055254910933
+                        }
+                    ],
+                    "cond-81": [
+                        {
+                            "epoch_number": 81,
+                            "time_ms": 1.9500000000000002,
+                            "size_uV": 296.7569608143987
+                        }
+                    ],
+                    "cond-85": [
+                        {
+                            "epoch_number": 85,
+                            "time_ms": 2.0,
+                            "size_uV": 280.8053630943212
+                        }
+                    ],
+                    "rcvr-5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 1.425,
+                            "size_uV": 287.8038233649192
+                        }
+                    ]
+                }
+            },
+            "failed": {
+                "epochs_mech": 0,
+                "epochs_elec": 0,
+                "mechanical": {},
+                "electrical": {}
+            }
+        },
+        {
+            "animal_id": "hff16",
+            "position": 1,
+            "test": "nine-one",
+            "test_stim": "mechanical",
+            "test_frequency": 90.0,
+            "test_frequency_minor": 10.0,
+            "test_amplitude": 1.0,
+            "repetition": 0,
+            "stddev": 55.95368622922614,
+            "threshold": 279.7684311461307,
+            "mech_criteria": {
+                "latency_min_ms": null,
+                "latency_max_ms": null,
+                "size_min_uV": 400,
+                "size_max_uV": 1000
+            },
+            "elec_criteria": {
+                "latency_min_ms": 2.3,
+                "latency_max_ms": 5,
+                "size_min_uV": 400,
+                "size_max_uV": 1000
+            },
+            "conditioning": {
+                "epochs_mech": 270,
+                "epochs_elec": 30,
+                "mechanical": {},
+                "electrical": {
+                    "0": [
+                        {
+                            "epoch_number": 0,
+                            "time_ms": 2.5,
+                            "size_uV": 886.3357347120418
+                        }
+                    ],
+                    "1": [
+                        {
+                            "epoch_number": 1,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 909.8590840586553
+                        }
+                    ],
+                    "2": [
+                        {
+                            "epoch_number": 2,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 930.0959305830204
+                        }
+                    ],
+                    "3": [
+                        {
+                            "epoch_number": 3,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 904.6101907688516
+                        }
+                    ],
+                    "4": [
+                        {
+                            "epoch_number": 4,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 894.0441427297546
+                        }
+                    ],
+                    "5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 887.2091695719281
+                        }
+                    ],
+                    "6": [
+                        {
+                            "epoch_number": 6,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 882.3682975024647
+                        }
+                    ],
+                    "7": [
+                        {
+                            "epoch_number": 7,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 883.0184619331988
+                        }
+                    ],
+                    "8": [
+                        {
+                            "epoch_number": 8,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 879.3320982465268
+                        }
+                    ],
+                    "9": [
+                        {
+                            "epoch_number": 9,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 886.040758036481
+                        }
+                    ],
+                    "10": [
+                        {
+                            "epoch_number": 10,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 891.4446888314175
+                        }
+                    ],
+                    "11": [
+                        {
+                            "epoch_number": 11,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 890.1892621973975
+                        }
+                    ],
+                    "12": [
+                        {
+                            "epoch_number": 12,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 886.2351706731831
+                        }
+                    ],
+                    "13": [
+                        {
+                            "epoch_number": 13,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 886.868287226217
+                        }
+                    ],
+                    "14": [
+                        {
+                            "epoch_number": 14,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 893.3977667824354
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 874.0048654229953
+                        }
+                    ],
+                    "16": [
+                        {
+                            "epoch_number": 16,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 896.0048225519675
+                        }
+                    ],
+                    "17": [
+                        {
+                            "epoch_number": 17,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 873.9257958097288
+                        }
+                    ],
+                    "18": [
+                        {
+                            "epoch_number": 18,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 885.6351587925803
+                        }
+                    ],
+                    "19": [
+                        {
+                            "epoch_number": 19,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 861.1922497170538
+                        }
+                    ],
+                    "20": [
+                        {
+                            "epoch_number": 20,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 847.7392808840682
+                        }
+                    ],
+                    "21": [
+                        {
+                            "epoch_number": 21,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 863.2247132268207
+                        }
+                    ],
+                    "22": [
+                        {
+                            "epoch_number": 22,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 870.7188582467835
+                        }
+                    ],
+                    "23": [
+                        {
+                            "epoch_number": 23,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 837.0679004890789
+                        }
+                    ],
+                    "24": [
+                        {
+                            "epoch_number": 24,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 842.0449123843605
+                        }
+                    ],
+                    "25": [
+                        {
+                            "epoch_number": 25,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 828.7405810847515
+                        }
+                    ],
+                    "26": [
+                        {
+                            "epoch_number": 26,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 841.5652478743813
+                        }
+                    ],
+                    "27": [
+                        {
+                            "epoch_number": 27,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 811.6594755168846
+                        }
+                    ],
+                    "28": [
+                        {
+                            "epoch_number": 28,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 808.1695796939719
+                        }
+                    ],
+                    "29": [
+                        {
+                            "epoch_number": 29,
+                            "time_ms": 2.575,
+                            "size_uV": 810.38381263045
+                        }
+                    ]
+                }
+            },
+            "interleaved": {
+                "epochs_mech": 75,
+                "epochs_elec": 75,
+                "mechanical": {},
+                "electrical": {
+                    "0": [
+                        {
+                            "epoch_number": 0,
+                            "time_ms": 2.575,
+                            "size_uV": 793.5782256257767
+                        }
+                    ],
+                    "1": [
+                        {
+                            "epoch_number": 1,
+                            "time_ms": 2.575,
+                            "size_uV": 791.8289217738444
+                        }
+                    ],
+                    "2": [
+                        {
+                            "epoch_number": 2,
+                            "time_ms": 2.6,
+                            "size_uV": 797.7111849033
+                        }
+                    ],
+                    "4": [
+                        {
+                            "epoch_number": 4,
+                            "time_ms": 2.6,
+                            "size_uV": 771.4329420106411
+                        }
+                    ],
+                    "5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 2.575,
+                            "size_uV": 754.4977250697565
+                        }
+                    ],
+                    "6": [
+                        {
+                            "epoch_number": 6,
+                            "time_ms": 2.575,
+                            "size_uV": 765.4505530904663
+                        }
+                    ],
+                    "7": [
+                        {
+                            "epoch_number": 7,
+                            "time_ms": 2.6,
+                            "size_uV": 759.1323627094633
+                        }
+                    ],
+                    "8": [
+                        {
+                            "epoch_number": 8,
+                            "time_ms": 2.6,
+                            "size_uV": 771.4250650632441
+                        }
+                    ],
+                    "11": [
+                        {
+                            "epoch_number": 11,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 781.6842721175109
+                        }
+                    ],
+                    "12": [
+                        {
+                            "epoch_number": 12,
+                            "time_ms": 2.575,
+                            "size_uV": 801.9694951169082
+                        }
+                    ],
+                    "13": [
+                        {
+                            "epoch_number": 13,
+                            "time_ms": 2.6,
+                            "size_uV": 794.8057875399103
+                        }
+                    ],
+                    "14": [
+                        {
+                            "epoch_number": 14,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 793.2724367710853
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.6,
+                            "size_uV": 849.6369127351348
+                        }
+                    ],
+                    "18": [
+                        {
+                            "epoch_number": 18,
+                            "time_ms": 2.575,
+                            "size_uV": 830.3727348625647
+                        }
+                    ],
+                    "19": [
+                        {
+                            "epoch_number": 19,
+                            "time_ms": 2.575,
+                            "size_uV": 817.9888492632806
+                        }
+                    ],
+                    "20": [
+                        {
+                            "epoch_number": 20,
+                            "time_ms": 2.6,
+                            "size_uV": 834.8571209156661
+                        }
+                    ],
+                    "21": [
+                        {
+                            "epoch_number": 21,
+                            "time_ms": 2.625,
+                            "size_uV": 830.2787262483182
+                        }
+                    ],
+                    "22": [
+                        {
+                            "epoch_number": 22,
+                            "time_ms": 2.7,
+                            "size_uV": 820.5734097761989
+                        }
+                    ],
+                    "23": [
+                        {
+                            "epoch_number": 23,
+                            "time_ms": 2.625,
+                            "size_uV": 834.1623518428102
+                        }
+                    ],
+                    "24": [
+                        {
+                            "epoch_number": 24,
+                            "time_ms": 2.625,
+                            "size_uV": 818.3710914706677
+                        }
+                    ],
+                    "27": [
+                        {
+                            "epoch_number": 27,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 795.5579513349949
+                        }
+                    ],
+                    "28": [
+                        {
+                            "epoch_number": 28,
+                            "time_ms": 2.575,
+                            "size_uV": 805.2041141454354
+                        }
+                    ],
+                    "29": [
+                        {
+                            "epoch_number": 29,
+                            "time_ms": 2.625,
+                            "size_uV": 798.6910346020112
+                        }
+                    ],
+                    "30": [
+                        {
+                            "epoch_number": 30,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 821.0289252427161
+                        }
+                    ],
+                    "33": [
+                        {
+                            "epoch_number": 33,
+                            "time_ms": 2.6,
+                            "size_uV": 822.8088859999709
+                        }
+                    ],
+                    "34": [
+                        {
+                            "epoch_number": 34,
+                            "time_ms": 2.575,
+                            "size_uV": 853.7569418042365
+                        }
+                    ],
+                    "35": [
+                        {
+                            "epoch_number": 35,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 839.2673840381749
+                        }
+                    ],
+                    "39": [
+                        {
+                            "epoch_number": 39,
+                            "time_ms": 2.575,
+                            "size_uV": 838.6396484947217
+                        }
+                    ],
+                    "40": [
+                        {
+                            "epoch_number": 40,
+                            "time_ms": 2.575,
+                            "size_uV": 876.3256202413239
+                        }
+                    ],
+                    "41": [
+                        {
+                            "epoch_number": 41,
+                            "time_ms": 2.6,
+                            "size_uV": 869.580786833885
+                        }
+                    ],
+                    "45": [
+                        {
+                            "epoch_number": 45,
+                            "time_ms": 2.575,
+                            "size_uV": 847.2807517159732
+                        }
+                    ],
+                    "46": [
+                        {
+                            "epoch_number": 46,
+                            "time_ms": 2.575,
+                            "size_uV": 840.8381843781028
+                        }
+                    ],
+                    "47": [
+                        {
+                            "epoch_number": 47,
+                            "time_ms": 2.6,
+                            "size_uV": 826.8556451003589
+                        }
+                    ],
+                    "51": [
+                        {
+                            "epoch_number": 51,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 818.7307051991022
+                        }
+                    ],
+                    "52": [
+                        {
+                            "epoch_number": 52,
+                            "time_ms": 2.575,
+                            "size_uV": 818.4805044946928
+                        }
+                    ],
+                    "53": [
+                        {
+                            "epoch_number": 53,
+                            "time_ms": 2.6750000000000003,
+                            "size_uV": 831.67137420467
+                        }
+                    ],
+                    "54": [
+                        {
+                            "epoch_number": 54,
+                            "time_ms": 2.6,
+                            "size_uV": 843.5716059111033
+                        }
+                    ],
+                    "55": [
+                        {
+                            "epoch_number": 55,
+                            "time_ms": 2.625,
+                            "size_uV": 846.6970570557339
+                        }
+                    ],
+                    "59": [
+                        {
+                            "epoch_number": 59,
+                            "time_ms": 2.625,
+                            "size_uV": 839.1141243576595
+                        }
+                    ],
+                    "60": [
+                        {
+                            "epoch_number": 60,
+                            "time_ms": 2.575,
+                            "size_uV": 813.3691087692877
+                        }
+                    ],
+                    "61": [
+                        {
+                            "epoch_number": 61,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 822.6808395110365
+                        }
+                    ],
+                    "65": [
+                        {
+                            "epoch_number": 65,
+                            "time_ms": 2.575,
+                            "size_uV": 821.9209086524004
+                        }
+                    ],
+                    "66": [
+                        {
+                            "epoch_number": 66,
+                            "time_ms": 2.575,
+                            "size_uV": 799.8177659190907
+                        }
+                    ],
+                    "69": [
+                        {
+                            "epoch_number": 69,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 826.2803813737137
+                        }
+                    ],
+                    "70": [
+                        {
+                            "epoch_number": 70,
+                            "time_ms": 2.575,
+                            "size_uV": 844.2279318034106
+                        }
+                    ],
+                    "71": [
+                        {
+                            "epoch_number": 71,
+                            "time_ms": 2.6500000000000004,
+                            "size_uV": 833.5564447746801
+                        }
+                    ],
+                    "72": [
+                        {
+                            "epoch_number": 72,
+                            "time_ms": 2.625,
+                            "size_uV": 825.2317209346807
+                        }
+                    ]
+                }
+            },
+            "recovery": {
+                "epochs_mech": 19,
+                "epochs_elec": 19,
+                "mechanical": {},
+                "electrical": {
+                    "0": [
+                        {
+                            "epoch_number": 0,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 912.5263264513992
+                        }
+                    ],
+                    "1": [
+                        {
+                            "epoch_number": 1,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 983.3394897858011
+                        }
+                    ],
+                    "2": [
+                        {
+                            "epoch_number": 2,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 827.9332243651852
+                        }
+                    ],
+                    "3": [
+                        {
+                            "epoch_number": 3,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 896.4162062221493
+                        }
+                    ],
+                    "4": [
+                        {
+                            "epoch_number": 4,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 849.930352344414
+                        }
+                    ],
+                    "5": [
+                        {
+                            "epoch_number": 5,
+                            "time_ms": 2.575,
+                            "size_uV": 856.9332217155288
+                        }
+                    ],
+                    "6": [
+                        {
+                            "epoch_number": 6,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 817.337101982008
+                        }
+                    ],
+                    "7": [
+                        {
+                            "epoch_number": 7,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 854.0431099331793
+                        }
+                    ],
+                    "8": [
+                        {
+                            "epoch_number": 8,
+                            "time_ms": 2.5500000000000003,
+                            "size_uV": 863.8518031368168
+                        }
+                    ],
+                    "9": [
+                        {
+                            "epoch_number": 9,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 845.1866023944036
+                        }
+                    ],
+                    "10": [
+                        {
+                            "epoch_number": 10,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 854.0337667327676
+                        }
+                    ],
+                    "11": [
+                        {
+                            "epoch_number": 11,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 839.2151914990552
+                        }
+                    ],
+                    "12": [
+                        {
+                            "epoch_number": 12,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 857.9768856792265
+                        }
+                    ],
+                    "13": [
+                        {
+                            "epoch_number": 13,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 824.739514460391
+                        }
+                    ],
+                    "14": [
+                        {
+                            "epoch_number": 14,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 774.0595834848648
+                        }
+                    ],
+                    "15": [
+                        {
+                            "epoch_number": 15,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 819.6688221348709
+                        }
+                    ],
+                    "16": [
+                        {
+                            "epoch_number": 16,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 831.1112842916773
+                        }
+                    ],
+                    "17": [
+                        {
+                            "epoch_number": 17,
+                            "time_ms": 2.5250000000000004,
+                            "size_uV": 896.4989398585152
+                        }
+                    ],
+                    "18": [
+                        {
+                            "epoch_number": 18,
+                            "time_ms": 2.5,
+                            "size_uV": 813.6118903488216
+                        }
+                    ]
+                }
+            },
+            "rejected": {
+                "epochs_mech": 0,
+                "epochs_elec": 0,
+                "mechanical": {},
+                "electrical": {}
+            },
+            "failed": {
+                "epochs_mech": 0,
+                "epochs_elec": 0,
+                "mechanical": {},
+                "electrical": {}
+            }
+        }
+    ]
+}

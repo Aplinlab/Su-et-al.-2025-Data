@@ -1,0 +1,29 @@
+{
+    "json_type": "frs",
+    "version": "v3.0.0",
+    "repetition": 0,
+    "recording_id": 0,
+    "filename": "hff11_pos1_nine-one",
+    "epoch_timing_ms": [
+        0,
+        5
+    ],
+    "skip_superfast": true,
+    "spike_criteria": {
+        "mechanical": {
+            "latency_min_ms": 2.75,
+            "latency_max_ms": null,
+            "size_min_uV": 35,
+            "size_max_uV": null
+        },
+        "electrical": {
+            "latency_min_ms": 1.6,
+            "latency_max_ms": 3,
+            "size_min_uV": 35,
+            "size_max_uV": null
+        }
+    },
+    "exclude_frequencies": [],
+    "exclude_amplitudes": [],
+    "enforce_max_failrate": false
+}

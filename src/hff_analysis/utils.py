@@ -11,10 +11,12 @@ value, returns it. Otherwise, raises AssertionError.
 * `current_version` -- module version stored as `VersionNumber` object.
 """
 
+from collections import abc
 import json
 import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
+import numpy as np
 import re
 import typing
 
@@ -22,10 +24,16 @@ from . import classes
 from . import constants
 
 
-current_version = classes.VersionNumber(constants.VERSION)
+small_float = np.nextafter(0, 1)
+current_version = classes.VersionNumber(constants.core.VERSION)
+
+# Type hints
 T = typing.TypeVar('T')
+S = typing.TypeVar('S')
+CanDoMathsT = float | np.typing.NDArray[np.floating]
 
 
+# Functions
 def confirm_save(
         file_path: str,
         filename: str,
@@ -38,17 +46,17 @@ def confirm_save(
     """
     # Construct target path for JSON file:
     save_file = file_path + filename
-    if force_overwrite:
-        # Do not ask for confirmation before overwriting if a file
-        # exists at the target path:
-        json.dump(output_dict, open(save_file, 'w'), indent=4)
-        saved = True
-    else:
-        try:
-            # Try to create a new file to save to at the target path:
-            json.dump(output_dict, open(save_file, 'x'), indent=4)
-            saved = True
-        except FileExistsError:
+    try:
+        # Try to create a new file to save to at the target path:
+        json.dump(output_dict, open(save_file, 'x'), indent=4)
+        saved = 1
+    except FileNotFoundError:
+        # Make directories if they don't exist
+        pathlib.Path(file_path).mkdir(parents=True, exist_ok=True)
+        confirm_save(file_path, filename, output_dict, force_overwrite)
+        return
+    except FileExistsError:
+        if not force_overwrite:
             # If file already exists at target path, ask user for manual
             # confirmation before overwriting:
             confirm_overwrite = input(
@@ -57,18 +65,85 @@ def confirm_save(
                 "Enter [Y/y] to overwrite, enter anything else or press "
                 "[Escape] to skip."
             )
-            # Regex checks if user input contains only `Y` or `y`
-            if re.search(r"^(?i:y)$", confirm_overwrite):
-                json.dump(output_dict, open(save_file, 'w'), indent=4)
-                saved = True
-            else:
-                saved = False
+            manual_overwrite = bool(re.search(r"^(?i:y)$", confirm_overwrite))
+        # Regex checks if user input contains only `Y` or `y`
+        if force_overwrite or manual_overwrite: # type: ignore
+            json.dump(output_dict, open(save_file, 'w'), indent=4)
+            saved = 2
+        else:
+            saved = 0
     # Notify user whether file was saved or not:
-    if saved:
+    if saved == 1:
         print(f"SUCCESS: `{filename}` saved to `{file_path}`")
+    elif saved == 2:
+        print(f"SUCCESS: `{filename}` overwritten at `{file_path}`")
     else:
         print(f"FAILURE: `{filename}` skipped")
     return
+
+
+def convert_to_json_dict(obj: typing.Any) -> typing.Any:
+    """Converts `obj` to a format compatible with the JSON decoder.
+    
+    Searches recursively through `dicts`, `lists`, and `tuples` to
+    perform the following conversions:
+    * Items with the `__dict__` attribute are converted to `dict` using
+    `vars()` (once converted, any such items will also be searched).
+    * `range` objects are converted to `dict` with keys `start`, `stop`,
+    and `step`.
+    * 1-dimensional `ndarray` objects are converted to `list` and
+    multi-dimensional `ndarray` objects are converted to nested `list`s.
+    Other NumPy types are not converted - note that NumPy `float` is an
+    instance of `float` and is compatible with the JSON decoder, but
+    NumPy `int` is not an instance of `int` and is therefore
+    incompatible with the JSON decoder.
+
+    Other types which are not compatible with the JSON decoder are not
+    converted, nor will they raise an error.
+    """
+    try:
+        if isinstance(obj, range):
+            return {
+                'start': obj.start,
+                'stop': obj.stop,
+                'step': obj.step
+            }
+        elif isinstance(obj, (list, np.ndarray)):
+            return [convert_to_json_dict(x) for x in obj]
+        elif isinstance(obj, abc.Mapping):
+            return {k:convert_to_json_dict(v) for k,v in obj.items()}
+        elif hasattr(obj, '__dict__'):
+            return convert_to_json_dict(vars(obj))
+        else:
+            return obj
+    except RecursionError:
+        print(obj)
+        print(type(obj))
+        raise
+
+
+def detect_edges(
+        bools: abc.Sequence[bool],
+        direction: typing.Literal['falling', 'rising']
+) -> list[int]:
+    try:
+        assert direction=='falling' or direction=='rising'
+    except AssertionError:
+        raise ValueError(f"{direction} is not a valid value for `direction`.")
+    # Convolve binary list to detect left edges:
+    # Note that `np.convolve()` flips smaller array before performing
+    # convolution.
+    convolution = np.convolve(bools, [1,-1], 'same')
+    edge_value = -1 if direction == 'falling' else 1
+    # Correct index of left edge (i.e. time in samples) for known delay
+    # between trigger and recording channels:
+    return [i for i,x in enumerate(convolution) if x==edge_value]
+
+
+def remove_empty_lists(
+        input_dict: abc.Mapping[T, list[S]]
+) -> dict[T, list[S]]:
+    return {k: v for k, v in input_dict.items() if v}
 
 
 def save_plot(
@@ -82,12 +157,12 @@ def save_plot(
     """
     # Define target directory:
     try:
-        target_path = (constants.SAVE_PATHS['plot_root'] +
-                       constants.SAVE_PATHS[plot_type])
+        target_path = (constants.core.SAVE_PATHS['plot_root'] +
+                       constants.core.SAVE_PATHS[plot_type])
     except KeyError:
         # If plot_type does not have entry in `constants.SAVE_PATHS`,
         # use its name as the directory name:
-        target_path = constants.SAVE_PATHS['plot_root'] + f'{plot_type}\\'
+        target_path = constants.core.SAVE_PATHS['plot_root'] + f'{plot_type}\\'
     # Save figure:
     try:
         plt.savefig(f'{target_path}{target_name}.pdf')
@@ -102,7 +177,7 @@ def save_plot(
     return
 
 
-def unique(values: typing.Sequence[T],) -> T:
+def unique(values: abc.Sequence[T] | pd.Series,) -> T:
     """Returns unique value in list or raises error if there isn't one.
     
     If `values` is a list or DataFrame series which contains only one

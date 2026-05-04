@@ -1,0 +1,29 @@
+{
+    "json_type": "frs",
+    "version": "v3.0.0",
+    "repetition": 0,
+    "recording_id": 0,
+    "filename": "hff02_pos1_amplsweep",
+    "epoch_timing_ms": [
+        0,
+        5
+    ],
+    "skip_superfast": false,
+    "spike_criteria": {
+        "mechanical": {
+            "latency_min_ms": 3.1,
+            "latency_max_ms": 4.2,
+            "size_min_uV": null,
+            "size_max_uV": null
+        },
+        "electrical": {
+            "latency_min_ms": 2.7,
+            "latency_max_ms": 3.1,
+            "size_min_uV": null,
+            "size_max_uV": null
+        }
+    },
+    "exclude_frequencies": [],
+    "exclude_amplitudes": [],
+    "enforce_max_failrate": false
+}
