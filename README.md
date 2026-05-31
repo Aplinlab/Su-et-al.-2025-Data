@@ -34,6 +34,10 @@ available on individual request.
 and foot features made in SD and Lewis rats. Used to estimate recording
 distance for experimental data. Also available in `.XLSX` format in the same
 directory.
+* `/misc/comsol_efield_model.mph` - Code for the extracellular electric field
+model. The code used for the MRG axonal dynamic model has been published under
+*Modulating individual axons and axonal populations in the peripheral nerve*
+*using transverse intrafascicular multichannel electrodes* (Xie et al., 2023).
 * `/src/plot_data/model/` - Model outputs under various conditions. Contains
 details on membrane voltage and gating variable changes over time.
 
@@ -41,6 +45,7 @@ A more comprehensive description of this repository can be found below.
 
 ## /misc/
 
+* `comsol_efield_model.mph` - Code for the extracellular electric field model.
 * `hff_stats.Rmd` - Code for all statistical analysis in *R*. To run this file
 yourself, copy the `stats` folder found in `/src/outputs/` into this directory
 and rename it to `datafiles`.
@@ -51,6 +56,11 @@ included in the final estimation due to inter-strain differences. These files
 were not directly imported for analysis; rather, the relevant data were
 transcribed into the `DISTANCE_ESTIMATION_DATA` constant found in
 `/src/hff_analysis/constants/experiments.py`.
+* `teased_fibre_dissection_platform_v2.5.stl` - Platform used for teased-fibre
+procedure. A more hydrophilic printing material can help the lateral channels
+to direct blood away from nerve bundles; more hydrophobic materials can result
+in globules of blood forming around the bundles, which obstructs vision and is
+generally undesirable.
 
 ## /src/
 
@@ -97,10 +107,10 @@ elsewhere, this folder must be copied into the same directory as
 
 Data from other sources, imported to generate figures. Includes:
 
-* `model/` - Modelling outputs for 7.3-μm and 14-μm diameter fibres with 10,
-50, and 200 Hz stimulation. Files contain data over 3 s, with one value per
-row and a tick rate of 25 μs. Files are organised into subfolders by fibre
-diameter and stimulation frequency, and use the following naming scheme:
+* `model/` - Modelling outputs for 7.3-μm and 14-μm diameter fibres. Files
+contain data over 3 s, with one value per row and a tick rate of 25 μs. Files
+are organised into subfolders by fibre diameter and stimulation frequency, and
+use the following naming scheme:
     * `Abeta0` / `Aalpha0` - membrane potential
     * `*_h` - sodium channel inactivation gating variable
     * `*_m` - sodium channel activation gating variable
@@ -110,5 +120,7 @@ diameter and stimulation frequency, and use the following naming scheme:
     * `*_iL` - leakage current
     * `*_iNa` - transient sodium current
     * `*_iNap` - persistent sodium current
-* `johnson_neyman_output.csv` - Data for generating the Johnson-Neyman plot in **Figure 3C**, exported from *R*.
-* `unit_types.csv` - Datapoints organised by unit type. Used to generate **Supplementary Figure S2**.
+* `johnson_neyman_output.csv` - Data for generating the Johnson-Neyman plot in
+**Figure 3C**, exported from *R*.
+* `unit_types.csv` - Datapoints organised by unit type. Used to generate
+**Supplementary Figure S2**.
