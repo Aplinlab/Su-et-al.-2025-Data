@@ -5,7 +5,7 @@ Python library, and should not include anything else. Legacy constants
 can be found in `updater.py`.
 """
 
-VERSION = '3.0.0'
+VERSION = '3.0.1'
 
 # Minimum threshold for spike detection (# of st.devs)
 SPIKE_NOISE_FLOOR = 5
@@ -61,6 +61,6 @@ SAVE_PATHS = {
 INITIAL_PROPS_JSON_NAME = 'initialprops'
 SPIKESDF_JSON_NAME = 'spikesdf'
 JOHNSON_NEYMAN_NAME = 'johnson_neyman_output'
-UNIT_TYPE_NAME = 'supplementary'
+UNIT_TYPE_NAME = 'unit_types'
 MODEL_FREQUENCIES = (10, 50, 200)
 SPIKE_EXTRACTION_OUTPUT_TYPES = ('clusters', 'frs', 'epochs', 'spikes')

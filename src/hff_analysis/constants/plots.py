@@ -233,27 +233,7 @@ QUANTIFICATION_SETP = {
         },
         {
             'xlabel': "Time (ms)",
-            'xlim': (0, 200),
-            'ylim': (0, 0.6)
-        },
-        {
-            'xlabel': "Time (ms)",
-            'xlim': (0, 200),
-            'ylim': (0, 0.6)
-        },
-        {
-            'xlabel': "Time (ms)",
             'ylabel': "Slow potassium\ngating variable",
-            'xlim': (0, 200),
-            'ylim': (0, 0.6)
-        },
-        {
-            'xlabel': "Time (ms)",
-            'xlim': (0, 200),
-            'ylim': (0, 0.6)
-        },
-        {
-            'xlabel': "Time (ms)",
             'xlim': (0, 200),
             'ylim': (0, 0.6)
         }
@@ -299,9 +279,9 @@ FIG2_CONDUCTIONVELOCITY_MAJORTICK_SPACING = 10
 FIG2_SINGLE_INVTAU_MINORTICK_SPACING = 0.02
 FIG2_FAST_INVTAU_MINORTICK_SPACING = 0.04
 FIG2_SLOW_INVTAU_MINORTICK_SPACING = 0.02
-FIG2_TITLE = "5 minute 50 Hz trains"
-FREQUENCY_SWEEP_TITLE = "3 second varied-frequency test"
-AMPLITUDE_SWEEP_TITLE = "3 second varied-amplitude test"
+FIG2_TITLE = "5-minute 50-Hz trains"
+FREQUENCY_SWEEP_TITLE = "3-second varied-frequency test"
+AMPLITUDE_SWEEP_TITLE = "3-second varied-amplitude test"
 FIG4_SLOPEPLOT_MINORTICK_SPACING = 0.0004
 FIG5_POINT_SIZE = 20
 FIG5_TITLE = "9 electrical:1 mechanical interleaved-pulse trains"
@@ -320,8 +300,8 @@ FIG5_DIFFERENCES_MINORTICK_SPACING = 0.05
 FIG5_DIFFERENCES_YLIM = (-1, 1)
 FIG6_POINT_SIZE = 0.5
 FIG8_BAR_WIDTH = 0.1
-FIG8_TITLE = "MRG model output (7.3μm sciatic nerve)"
-FIGS5_TITLE = "MRG model output (14μm sciatic nerve)"
+FIG8_TITLE = "MRG model output (7.3-μm sciatic nerve)"
+FIGS5_TITLE = "MRG model output (14-μm sciatic nerve)"
 UNIT_INSPECTION_HEIGHT = 3
 
 RASTER_PHASE_SPACING = {

@@ -432,7 +432,10 @@ def longduration_probability(
             constants.plots.PROBABILITY_MINORTICK_SPACING
         ))
     for ax in axis[6:]:
-        ax.set_xlim(0, cv_norm.vmax)
+        ax.set_xlim(
+            0,
+            round_sigfigs(max(conduction_velocities.values()), 'ceil')
+        )
         ax.xaxis.set_major_locator(ticker.MultipleLocator(
             constants.plots.FIG2_CONDUCTIONVELOCITY_MAJORTICK_SPACING
         ))
@@ -642,7 +645,7 @@ def sweeps_probability(
                         probability,
                         s=constants.plots.QUANTIFICATION_POINT_SIZE*2/(j+1),
                         c=conduction_velocity,
-                        cmap=cmap,
+                        cmap=cmap, # type: ignore
                         norm=cv_norm,
                         alpha=constants.plots.QUANTIFICATION_RAW_OPACITY,
                         clip_on=False,
@@ -1270,33 +1273,37 @@ def model_output(
         save_plot: bool = True
 ) -> None:
     # import csvs from filenames in constants as dataframe
-    trace_dfs_7um = model_dfs('7um_', 'Hz_1T\\Abeta0.txt')
-    gate_dfs_7um = model_dfs('7um_', 'Hz_1T\\Abeta0_s.txt')
-    trace_dfs_14um = model_dfs('14um_', 'Hz_1T\\Aalpha0.txt')
-    gate_dfs_14um = model_dfs('14um_', 'Hz_1T\\Aalpha0_s.txt')
-    # trace_dfs_14um = {x: pd.read_csv(
-    #     constants.core.SAVE_PATHS['root'] +
-    #     constants.core.SAVE_PATHS['plot_data'] +
-    #     f'14um_{x}Hz_1T\\Aalpha0.txt',
-    #     names=['y']
-    # ) for x in constants.core.MODEL_FREQUENCIES}
-    # gate_dfs_14um = {x: pd.read_csv(
-    #     constants.core.SAVE_PATHS['root'] +
-    #     constants.core.SAVE_PATHS['plot_data'] +
-    #     f'14um_{x}Hz_1T\\Aalpha0_s.txt',
-    #     names=['y']
-    # ) for x in constants.core.MODEL_FREQUENCIES}
+    trace_dfs_7um = model_dfs(
+        '7um_',
+        'Hz_1T\\Abeta0.txt',
+        constants.core.MODEL_FREQUENCIES
+    )
+    gate_dfs_7um = model_dfs(
+        '7um_',
+        'Hz_1T\\Abeta0_s.txt',
+        constants.plots.FIG8_FREQUENCIES.keys()
+    )
+    trace_dfs_14um = model_dfs(
+        '14um_',
+        'Hz_1T\\Aalpha0.txt',
+        constants.core.MODEL_FREQUENCIES
+    )
+    gate_dfs_14um = model_dfs(
+        '14um_',
+        'Hz_1T\\Aalpha0_s.txt',
+        constants.plots.FIG8_FREQUENCIES.keys()
+    )
 
     fig_7um = plt.figure(0, figsize=(
-        constants.plots.FIG_WIDTH*1.2,
+        constants.plots.FIG_WIDTH*0.8,
         constants.plots.QUANTIFICATION_FIG_HEIGHT
     ))
-    gs_7um = fig_7um.add_gridspec(12, 7)
+    gs_7um = fig_7um.add_gridspec(9, 4)
     fig_14um = plt.figure(1, figsize=(
-        constants.plots.FIG_WIDTH*1.2,
+        constants.plots.FIG_WIDTH*0.8,
         constants.plots.QUANTIFICATION_FIG_HEIGHT
     ))
-    gs_14um = fig_14um.add_gridspec(12, 7)
+    gs_14um = fig_14um.add_gridspec(9, 4)
     axis = (
         fig_7um.add_subplot(gs_7um[0, :]),
         fig_7um.add_subplot(gs_7um[1, :]),
@@ -1304,17 +1311,23 @@ def model_output(
         fig_14um.add_subplot(gs_14um[0, :]),
         fig_14um.add_subplot(gs_14um[1, :]),
         fig_14um.add_subplot(gs_14um[2, :]),
-        fig_7um.add_subplot(gs_7um[3:6, :5]),
-        fig_7um.add_subplot(gs_7um[6:9, :5]),
-        fig_14um.add_subplot(gs_14um[3:6, :5]),
-        fig_14um.add_subplot(gs_14um[6:9, :5]),
-        fig_7um.add_subplot(gs_7um[9:, :2]),
-        fig_7um.add_subplot(gs_7um[9:, 2:4]),
-        fig_7um.add_subplot(gs_7um[9:, 4:6]),
-        fig_14um.add_subplot(gs_14um[9:, :2]),
-        fig_14um.add_subplot(gs_14um[9:, 2:4]),
-        fig_14um.add_subplot(gs_14um[9:, 4:6]),
+        fig_7um.add_subplot(gs_7um[3:5, :3]),
+        fig_7um.add_subplot(gs_7um[5:7, :3]),
+        fig_14um.add_subplot(gs_14um[3:5, :3]),
+        fig_14um.add_subplot(gs_14um[5:7, :3]),
+        fig_7um.add_subplot(gs_7um[7:, :3]),
+        fig_14um.add_subplot(gs_14um[7:, :3])
     )
+
+    colour_cycle = [
+        constants.plots.PALETTE['sky'],
+        '#db6d00',
+        '#006dff',
+        '#920000',
+        '#490092',
+        constants.plots.PALETTE['black']
+    ]
+    linestyle_cycle = [':','--','-','-.',(0,(3,2,1,2,1,2)),(0,(3,1,3,1,1,1))]
 
     for ax, trace_dfs in (
         (axis[:3], trace_dfs_7um),
@@ -1422,18 +1435,8 @@ def model_output(
         (axis[8:10], constants.plots.FIGS5_FREQUENCIES)
     ):
         ax[0].set_prop_cycle(
-            cycler(
-                'linestyle',
-                [':','--','-','-.',(0,(3,2,1,2,1,2)),(0,(3,1,3,1,1,1))]
-            ) +
-            cycler('c', [
-                constants.plots.PALETTE['sky'],
-                '#db6d00',
-                '#006dff',
-                '#920000',
-                '#490092',
-                constants.plots.PALETTE['black']
-            ])
+            cycler('linestyle',linestyle_cycle) +
+            cycler('c', colour_cycle)
         )
         for frequency, response_probability in results_dict.items():
             ax[0].plot(
@@ -1494,9 +1497,10 @@ def model_output(
             [str(x) for x in results_dict.keys()]
         )
     for ax, gate_dfs in (
-        (axis[10:13], gate_dfs_7um),
-        (axis[13:], gate_dfs_14um)
+        (axis[10], gate_dfs_7um),
+        (axis[11], gate_dfs_14um)
     ):
+        ax.set_prop_cycle(cycler('linestyle',linestyle_cycle))
         for i, (frequency, trace) in enumerate(gate_dfs.items()):
             # trace_x = np.array(i*0.000025 for i,_x in enumerate(trace['y']))
             trace_y = np.array(trace['y'])
@@ -1522,7 +1526,7 @@ def model_output(
                 )
                 spikes[str(j)] = peaks*tick_dt_ms
             plot_trace(
-                ax[i],
+                ax,
                 np.arange(stop=(duration_s+tick_dt)*1000, step=tick_dt*1000), # type: ignore
                 trace_y,
                 (0, int(duration_s/tick_dt)),
@@ -1545,11 +1549,14 @@ def model_output(
                 frequency,
                 -1,
                 tick_dt,
-                linewidth=constants.plots.TRACE_LINEWIDTH*4
+                linewidth=constants.plots.TRACE_LINEWIDTH*4,
+                c=colour_cycle[i],
+                alpha=0.5,
+                label=' '.join((str(frequency), constants.core.TEST_UNITS['frequency'])),
+                clip_on=False,
+                zorder=100
             )
-            ax[i].set_title(f'{frequency} {constants.core.TEST_UNITS['frequency']}')
-            if i != 0:
-                ax[i].set_yticklabels([])
+            ax.legend(loc='center left', bbox_to_anchor=(1,0.6))
     apply_setp(axis, 'model_output')
     plt.figure(0)
     plt.suptitle(constants.plots.FIG8_TITLE)
@@ -1616,7 +1623,7 @@ def unit_type_effects(save_plot: bool = True) -> None:
     if save_plot:
         utils.save_plot(
             'paper',
-            "Supplementary S1"
+            "Supplementary S2"
         )
     return
 
@@ -1683,17 +1690,11 @@ def initial_properties(
 
 
 def normalise_conduction_velocity(
-    conduction_velocities: abc.Mapping[str, float]
+    conduction_velocities: abc.Collection[float]
 ) -> colors.Normalize:
     return colors.Normalize(
-        round_sigfigs(
-            min(conduction_velocities.values()),
-            'floor'
-        ),
-        round_sigfigs(
-            max(conduction_velocities.values()),
-            'ceil'
-        )
+        min(conduction_velocities),
+        max(conduction_velocities)
     )
 
 
@@ -2642,13 +2643,13 @@ def load_spikes_trials(
     return all_trials, isi_results
 
 
-def model_dfs(file_pre, file_post) -> dict[int, pd.DataFrame]:
+def model_dfs(file_pre, file_post, frequencies) -> dict[int, pd.DataFrame]:
     return {x: pd.read_csv(
         constants.core.SAVE_PATHS['root'] +
         constants.core.SAVE_PATHS['plot_data'] +
         'model\\' + file_pre + str(x) + file_post,
         names=['y']
-    ) for x in constants.core.MODEL_FREQUENCIES}
+    ) for x in frequencies}
 
 
 @typing.overload
@@ -2931,12 +2932,22 @@ def plot_trace(
         trace_y_segment,
         **plot_kwargs
     )
-    label_position = max(trace_y_segment) + y_spacing*0.1
+    label_position = max(trace_y_segment) + y_spacing*0.05
     trigger_line_top = min(trace_y_segment) - y_spacing*0.05
     if vertical_label_offset is not None:
         label_position += y_spacing*vertical_label_offset
         trigger_line_top -= y_spacing*vertical_label_offset
     trigger_line_bottom = trigger_line_top - y_spacing*0.1
+    axis_line_bottom = statistics.mean((
+        min(trace_y_segment),
+        min(trace_y_segment),
+        trigger_line_top
+    ))
+    axis_line_top = statistics.mean((
+        max(trace_y_segment),
+        max(trace_y_segment),
+        label_position
+    ))
     if coordinates.label is not None:
         ax.text(
             x_offset,
@@ -2945,7 +2956,7 @@ def plot_trace(
         )
         ax.plot(
             (x_offset, x_offset),
-            (trigger_line_top, label_position),
+            (axis_line_bottom, axis_line_top),
             color=constants.plots.PALETTE['black'],
             linestyle='dotted',
             linewidth=constants.plots.TRACE_LINEWIDTH*4,
